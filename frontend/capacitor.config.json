@@ -1,0 +1,13 @@
+{
+  "appId": "com.socialdl.app",
+  "appName": "SocialDL",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  },
+  "plugins": {
+    "Haptics": {},
+    "Filesystem": {}
+  }
+}

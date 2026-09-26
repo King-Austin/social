@@ -3,23 +3,25 @@ import {
   Download,
   Video,
   Music,
-  Server,
-  HardDrive,
   Settings,
   RefreshCw,
   CheckCircle2,
   AlertCircle,
-  ExternalLink,
   Sparkles,
   Play,
-  Film,
-  Radio,
-  FileCode,
   X,
-  Copy,
+  Share2,
+  Folder,
+  LayoutGrid,
+  Trash2,
+  ChevronDown,
+  ChevronRight,
+  ClipboardPaste,
+  Sliders,
   Check,
-  Cpu,
-  Share2
+  Smartphone,
+  ExternalLink,
+  ShieldCheck
 } from 'lucide-react'
 
 import { Capacitor } from '@capacitor/core'
@@ -28,7 +30,7 @@ import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics'
 import { Filesystem, Directory } from '@capacitor/filesystem'
 import { Share } from '@capacitor/share'
 
-// Haptic feedback helper supporting both native Capacitor and mobile browser vibration
+// Haptic feedback helper
 export const triggerHaptic = async (type = 'light') => {
   try {
     if (Capacitor.isNativePlatform()) {
@@ -40,47 +42,80 @@ export const triggerHaptic = async (type = 'light') => {
       else if (type === 'error') await Haptics.notification({ type: NotificationType.Error })
     } else if (typeof navigator !== 'undefined' && navigator.vibrate) {
       if (type === 'light') navigator.vibrate(12)
-      else if (type === 'medium') navigator.vibrate(28)
-      else if (type === 'heavy') navigator.vibrate(45)
-      else if (type === 'selection') navigator.vibrate(8)
-      else if (type === 'success') navigator.vibrate([15, 50, 20])
-      else if (type === 'error') navigator.vibrate([40, 40, 40])
+      else if (type === 'medium') navigator.vibrate(25)
+      else if (type === 'heavy') navigator.vibrate(40)
+      else if (type === 'selection') navigator.vibrate(10)
+      else if (type === 'success') navigator.vibrate([15, 40, 20])
+      else if (type === 'error') navigator.vibrate([35, 30, 35])
     }
   } catch {
-    // Graceful no-op on non-supported platforms
+    // Non-critical fallback
   }
 }
 
-// Sample URLs for instant 1-click test
+// 1-Click Platform Test Samples
 const SAMPLES = [
-  {
-    name: 'YouTube',
-    url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    platform: 'YouTube'
-  },
   {
     name: 'TikTok',
     url: 'https://vt.tiktok.com/ZSb28AUs8/',
     platform: 'TikTok'
   },
   {
-    name: 'Twitter (X)',
-    url: 'https://x.com/LisPower1/status/1001551623938805763',
-    platform: 'X / Twitter'
+    name: 'YouTube',
+    url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    platform: 'YouTube'
   },
   {
-    name: 'SoundCloud (Audio)',
+    name: 'Twitter (X)',
+    url: 'https://x.com/LisPower1/status/1001551623938805763',
+    platform: 'Twitter / X'
+  },
+  {
+    name: 'SoundCloud',
     url: 'https://soundcloud.com/octobersveryown/drake-back-to-back-freestyle',
     platform: 'SoundCloud'
   }
 ]
 
+// Default seed history for instant legibility
+const INITIAL_DEMO_HISTORY = [
+  {
+    id: 'demo_1',
+    title: 'Viral Travel Reel - Cinematic Kyoto Mountains',
+    thumbnail: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=300&q=80',
+    platform: 'Instagram',
+    duration: '0:32',
+    filesize: '14.5 MB',
+    ext: 'mp4',
+    download_url: '',
+    timestamp: Date.now() - 3600000
+  },
+  {
+    id: 'demo_2',
+    title: 'Ambient Chill Lofi Beats - Rain in Tokyo',
+    thumbnail: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=300&q=80',
+    platform: 'SoundCloud',
+    duration: '3:45',
+    filesize: '8.1 MB',
+    ext: 'mp3',
+    download_url: '',
+    timestamp: Date.now() - 7200000
+  }
+]
+
+// APK Download link (Customizable or default to domain APK path)
+const APK_DOWNLOAD_URL = 'https://social.nworahebuka.com.ng/SocialDL.apk'
+
 export default function App() {
+  // Navigation State: 'saver' | 'library' | 'apps' | 'settings'
+  const [activeNav, setActiveNav] = useState('saver')
+
+  // Search & Download States
   const [url, setUrl] = useState('')
   const [loadingInfo, setLoadingInfo] = useState(false)
   const [mediaInfo, setMediaInfo] = useState(null)
   const [error, setError] = useState(null)
-  const [activeTab, setActiveTab] = useState('video')
+  const [activeTab, setActiveTab] = useState('video') // 'video' | 'audio'
 
   // Download Job tracking
   const [activeTaskId, setActiveTaskId] = useState(null)
@@ -90,53 +125,85 @@ export default function App() {
   // System & Health Telemetry
   const [health, setHealth] = useState(null)
   const [cookiesInfo, setCookiesInfo] = useState(null)
-
-  // Settings & Configuration
-  const [showSettings, setShowSettings] = useState(false)
   const [customBackendUrl, setCustomBackendUrl] = useState(
-    () => localStorage.getItem('ytdlp_custom_backend') || ''
+    () => localStorage.getItem('socialdl_backend_url') || ''
   )
   const [cookiesInput, setCookiesInput] = useState('')
   const [savingCookies, setSavingCookies] = useState(false)
-  const [copiedLink, setCopiedLink] = useState(false)
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false)
   const [downloadingToDevice, setDownloadingToDevice] = useState(false)
 
-  // Mobile Back Button Navigation Control
+  // Downloaded Library History
+  const [history, setHistory] = useState(() => {
+    try {
+      const saved = localStorage.getItem('socialdl_history')
+      if (saved) return JSON.parse(saved)
+    } catch (e) {
+      console.warn('Failed to parse history:', e)
+    }
+    return INITIAL_DEMO_HISTORY
+  })
+  const [libraryFilter, setLibraryFilter] = useState('all') // 'all' | 'video' | 'audio'
+
+  // Mobile Hardware Back Button
   const [backPressedOnce, setBackPressedOnce] = useState(false)
   const [showExitToast, setShowExitToast] = useState(false)
   const backPressTimerRef = useRef(null)
 
-  // Keep latest UI state in ref for hardware back button handler
-  const stateRef = useRef({ showSettings, mediaInfo, jobState, backPressedOnce })
+  // State ref for hardware back button handler
+  const stateRef = useRef({ activeNav, mediaInfo, jobState, backPressedOnce })
   useEffect(() => {
-    stateRef.current = { showSettings, mediaInfo, jobState, backPressedOnce }
-  }, [showSettings, mediaInfo, jobState, backPressedOnce])
+    stateRef.current = { activeNav, mediaInfo, jobState, backPressedOnce }
+  }, [activeNav, mediaInfo, jobState, backPressedOnce])
 
-  // Hierarchical back button listener for mobile
+  // Save history helper
+  const saveToHistory = (item) => {
+    setHistory((prev) => {
+      const filtered = prev.filter((p) => p.id !== item.id && p.title !== item.title)
+      const updated = [item, ...filtered].slice(0, 30)
+      try {
+        localStorage.setItem('socialdl_history', JSON.stringify(updated))
+      } catch (err) {
+        console.warn('Could not save history to localStorage', err)
+      }
+      return updated
+    })
+  }
+
+  // Clear history
+  const handleClearHistory = () => {
+    if (confirm('Are you sure you want to clear your download history?')) {
+      triggerHaptic('medium')
+      setHistory([])
+      localStorage.removeItem('socialdl_history')
+    }
+  }
+
+  // Mobile Hardware Back Button Listener
   useEffect(() => {
     let backListener = null
 
     const setupBackButton = async () => {
       try {
         if (Capacitor.isNativePlatform()) {
-          backListener = await CapApp.addListener('backButton', async ({ canGoBack }) => {
-            const { showSettings: isSettingsOpen, mediaInfo: hasMedia, backPressedOnce: pressedOnce } = stateRef.current
+          backListener = await CapApp.addListener('backButton', async () => {
+            const { activeNav: curNav, mediaInfo: hasMedia, backPressedOnce: pressedOnce } = stateRef.current
 
-            // 1. If Settings modal is open, close it
-            if (isSettingsOpen) {
+            // 1. If inside Library, Apps, or Settings, return to Saver Home
+            if (curNav !== 'saver') {
               await triggerHaptic('light')
-              setShowSettings(false)
+              setActiveNav('saver')
               return
             }
 
-            // 2. If viewing a media result or active download card, step back to clean search
+            // 2. If on Saver screen with media card open, close card back to clean input
             if (hasMedia) {
               await triggerHaptic('light')
               setMediaInfo(null)
               return
             }
 
-            // 3. If at root screen, require double back tap within 2s to exit
+            // 3. If on clean Saver screen, require double back tap within 2s to exit
             if (pressedOnce) {
               await triggerHaptic('medium')
               CapApp.exitApp()
@@ -154,7 +221,7 @@ export default function App() {
           })
         }
       } catch (err) {
-        console.warn('Could not register hardware back button listener:', err)
+        console.warn('Hardware back listener notice:', err)
       }
     }
 
@@ -174,18 +241,17 @@ export default function App() {
     if (import.meta.env.VITE_API_URL) {
       return import.meta.env.VITE_API_URL.replace(/\/+$/, '')
     }
-    // Default: relative proxy via Vite or current host
     return ''
   }
 
-  // Native mobile download & share handler for Capacitor
-  const handleNativeDownloadOrShare = async (downloadUrl, filename) => {
+  // Native Mobile Download & Share Handler
+  const handleNativeDownloadOrShare = async (downloadUrl, filename, title) => {
     await triggerHaptic('medium')
     try {
       setDownloadingToDevice(true)
       const fullUrl = `${getApiUrl()}${downloadUrl}`
       const response = await fetch(fullUrl)
-      if (!response.ok) throw new Error('Failed to retrieve file from server.')
+      if (!response.ok) throw new Error('File download from server failed.')
       const blob = await response.blob()
 
       const reader = new FileReader()
@@ -193,7 +259,7 @@ export default function App() {
       reader.onloadend = async () => {
         try {
           const base64data = reader.result.split(',')[1]
-          const cleanName = filename ? filename.replace(/^[a-f0-9-]+_/, '') : `media_${Date.now()}.mp4`
+          const cleanName = filename ? filename.replace(/^[a-f0-9-]+_/, '') : `SocialDL_${Date.now()}.mp4`
 
           const savedFile = await Filesystem.writeFile({
             path: cleanName,
@@ -203,10 +269,10 @@ export default function App() {
 
           await triggerHaptic('success')
           await Share.share({
-            title: 'SocialDL Media',
-            text: 'Downloaded via SocialDL',
+            title: title || 'SocialDL Media',
+            text: 'Downloaded with SocialDL',
             url: savedFile.uri,
-            dialogTitle: 'Save or Share Media'
+            dialogTitle: 'Save or Share Video'
           })
         } catch (shareErr) {
           console.error('File share error:', shareErr)
@@ -222,13 +288,13 @@ export default function App() {
     }
   }
 
-  // Fetch telemetry & cookies info
+  // Fetch Telemetry Info
   const fetchTelemetry = async () => {
     try {
       const baseUrl = getApiUrl()
       const [healthRes, cookiesRes] = await Promise.all([
-        fetch(`${baseUrl}/api/health`).then(r => r.json()).catch(() => null),
-        fetch(`${baseUrl}/api/cookies`).then(r => r.json()).catch(() => null)
+        fetch(`${baseUrl}/api/health`).then((r) => r.json()).catch(() => null),
+        fetch(`${baseUrl}/api/cookies`).then((r) => r.json()).catch(() => null)
       ])
       if (healthRes && healthRes.status === 'healthy') {
         setHealth(healthRes)
@@ -237,23 +303,47 @@ export default function App() {
         setCookiesInfo(cookiesRes)
       }
     } catch {
-      // Ignore background telemetry errors
+      // Background silence
     }
   }
 
   useEffect(() => {
     fetchTelemetry()
-    const interval = setInterval(fetchTelemetry, 15000)
+    const interval = setInterval(fetchTelemetry, 25000)
     return () => clearInterval(interval)
   }, [customBackendUrl])
 
-  // Extract metadata
+  // 1-Tap Paste from Clipboard
+  const handlePasteFromClipboard = async () => {
+    await triggerHaptic('light')
+    try {
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        const text = await navigator.clipboard.readText()
+        if (text && text.trim()) {
+          setUrl(text.trim())
+          await triggerHaptic('success')
+          handleInspectUrl(text.trim())
+          return
+        }
+      }
+    } catch (e) {
+      console.warn('Clipboard read notice:', e)
+    }
+
+    const fallbackVal = prompt('Paste video link here:')
+    if (fallbackVal && fallbackVal.trim()) {
+      setUrl(fallbackVal.trim())
+      handleInspectUrl(fallbackVal.trim())
+    }
+  }
+
+  // Inspect URL / Fetch Media
   const handleInspectUrl = async (targetUrl = url) => {
     await triggerHaptic('medium')
     const finalUrl = (targetUrl || '').trim()
     if (!finalUrl) {
       await triggerHaptic('error')
-      setError('Please provide a valid video or audio URL.')
+      setError('Please paste a video link first.')
       return
     }
 
@@ -273,7 +363,7 @@ export default function App() {
 
       const data = await res.json()
       if (!res.ok) {
-        throw new Error(data.detail || 'Failed to inspect media.')
+        throw new Error(data.detail || 'Could not analyze video from this link.')
       }
 
       setMediaInfo(data.data)
@@ -291,7 +381,7 @@ export default function App() {
     }
   }
 
-  // Trigger download job
+  // Start Download Job
   const handleStartDownload = async (formatId, isAudio, bitrate = 192) => {
     if (!mediaInfo) return
     await triggerHaptic('heavy')
@@ -312,7 +402,7 @@ export default function App() {
 
       const data = await res.json()
       if (!res.ok) {
-        throw new Error(data.detail || 'Download request could not be queued.')
+        throw new Error(data.detail || 'Download request failed to start.')
       }
 
       const taskId = data.task_id
@@ -327,14 +417,14 @@ export default function App() {
         filesize_formatted: 'Calculating...'
       })
 
-      // Establish real-time SSE connection
       connectToJobSSE(taskId)
     } catch (err) {
+      await triggerHaptic('error')
       setError(err.message)
     }
   }
 
-  // SSE Real-time Progress Tracking
+  // Connect to SSE Stream
   const connectToJobSSE = (taskId) => {
     if (eventSourceRef.current) {
       eventSourceRef.current.close()
@@ -352,7 +442,21 @@ export default function App() {
         if (update.status === 'completed') {
           await triggerHaptic('success')
           es.close()
-          fetchTelemetry() // update cached files count
+          fetchTelemetry()
+
+          // Add to local history
+          saveToHistory({
+            id: taskId,
+            title: update.title || mediaInfo?.title || 'Downloaded Video',
+            thumbnail: mediaInfo?.thumbnail || '',
+            platform: mediaInfo?.platform || 'Video',
+            duration: mediaInfo?.duration_formatted || '',
+            filesize: update.filesize_formatted || 'Completed',
+            ext: update.filename?.split('.').pop() || 'mp4',
+            download_url: update.download_url,
+            filename: update.filename,
+            timestamp: Date.now()
+          })
         } else if (update.status === 'failed') {
           await triggerHaptic('error')
           es.close()
@@ -363,7 +467,6 @@ export default function App() {
     }
 
     es.onerror = () => {
-      // Fallback to polling if SSE drops
       pollJobStatus(taskId)
       es.close()
     }
@@ -380,6 +483,20 @@ export default function App() {
           setJobState(data.task)
           if (data.task.status === 'completed' || data.task.status === 'failed') {
             clearInterval(pollTimer)
+            if (data.task.status === 'completed') {
+              saveToHistory({
+                id: taskId,
+                title: data.task.title || mediaInfo?.title || 'Downloaded Video',
+                thumbnail: mediaInfo?.thumbnail || '',
+                platform: mediaInfo?.platform || 'Video',
+                duration: mediaInfo?.duration_formatted || '',
+                filesize: data.task.filesize_formatted || 'Completed',
+                ext: data.task.filename?.split('.').pop() || 'mp4',
+                download_url: data.task.download_url,
+                filename: data.task.filename,
+                timestamp: Date.now()
+              })
+            }
           }
         }
       } catch {
@@ -391,7 +508,7 @@ export default function App() {
   // Save backend URL setting
   const handleSaveBackendUrl = (newUrl) => {
     setCustomBackendUrl(newUrl)
-    localStorage.setItem('ytdlp_custom_backend', newUrl)
+    localStorage.setItem('socialdl_backend_url', newUrl)
   }
 
   // Save cookies
@@ -408,7 +525,7 @@ export default function App() {
       if (res.ok) {
         setCookiesInput('')
         fetchTelemetry()
-        alert('Cookies saved successfully! yt-dlp will now use them for restricted platforms.')
+        alert('Cookies configured successfully!')
       } else {
         alert('Failed to save cookies.')
       }
@@ -421,7 +538,7 @@ export default function App() {
 
   // Delete cookies
   const handleDeleteCookies = async () => {
-    if (!confirm('Are you sure you want to remove the cookies file?')) return
+    if (!confirm('Remove saved cookies?')) return
     try {
       const baseUrl = getApiUrl()
       await fetch(`${baseUrl}/api/cookies`, { method: 'DELETE' })
@@ -431,480 +548,981 @@ export default function App() {
     }
   }
 
+  // Filtered History for Library Tab
+  const filteredHistory = history.filter((item) => {
+    if (libraryFilter === 'video') return item.ext === 'mp4' || item.ext === 'webm' || !item.ext
+    if (libraryFilter === 'audio') return item.ext === 'mp3' || item.ext === 'm4a'
+    return true
+  })
+
   return (
-    <div className="app-container">
-      {/* Header */}
-      <header className="header">
-        <div className="brand">
-          <div className="brand-icon">
-            <Radio size={22} />
+    <div className="app-shell">
+      {/* Top Application Header */}
+      <header className="app-header">
+        <div className="brand-section">
+          <div className="brand-icon-box">
+            <Sparkles size={22} />
           </div>
-          <div className="brand-text">
-            <h1>
-              SocialDL
-              <span className="brand-badge">yt-dlp v2026</span>
-            </h1>
-            <div className="brand-tagline">EC2 Cloud Backend • Serverless Frontend</div>
+          <div className="brand-text-name">
+            Social<span>DL</span>
           </div>
         </div>
 
-        <div className="nav-actions">
-          {health ? (
-            <div className="telemetry-pill" title="VPS Backend Connected">
-              <span className="status-dot pulse" />
-              <span>EC2 Online</span>
-              <span style={{ color: 'var(--text-dim)' }}>|</span>
-              <HardDrive size={13} style={{ color: 'var(--accent-secondary)' }} />
-              <span>{health.storage.free_gb} GB Free</span>
-            </div>
-          ) : (
-            <div className="telemetry-pill" style={{ borderColor: 'rgba(239, 68, 68, 0.4)' }}>
-              <span className="status-dot" style={{ background: '#ef4444', boxShadow: 'none' }} />
-              <span>Backend Offline</span>
-            </div>
-          )}
-
-          <button
-            className="btn-icon"
-            onClick={() => setShowSettings(true)}
-            title="Backend & Vercel Settings"
+        <div className="header-actions">
+          <a
+            href={APK_DOWNLOAD_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="btn-apk-header"
+            title="Download SocialDL APK for Android"
           >
-            <Settings size={18} />
-          </button>
+            <Smartphone size={14} />
+            Download APK
+          </a>
+          <div className="status-indicator">
+            <span className="status-dot" />
+            <span>{health ? 'Online' : 'Checking'}</span>
+          </div>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="hero">
-        <div className="hero-pill">
-          <Sparkles size={14} />
-          Self-Hosted Media Engine for your VPS
-        </div>
-        <h2>
-          Download Anything. <br />
-          <span className="gradient-text">Zero Limits, Hosted on EC2.</span>
-        </h2>
-        <p>
-          Powered by latest <strong style={{ color: '#fff' }}>yt-dlp</strong> and <strong style={{ color: '#fff' }}>FFmpeg</strong>.
-          Extract ultra-crisp 1080p/4K video and lossless 320kbps MP3 audio directly to your device.
-        </p>
-      </section>
-
-      {/* Input Section */}
-      <section className="input-section">
-        <div className="search-box">
-          <div className="search-box-icon">
-            <Film size={22} />
-          </div>
-          <input
-            type="url"
-            placeholder="Paste any video, track, or post URL (YouTube, TikTok, Twitter/X, SoundCloud, IG...)"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleInspectUrl()}
-          />
-          <div className="search-box-actions">
-            {url && (
-              <button
-                className="btn-ghost"
-                onClick={() => setUrl('')}
-                title="Clear input"
-              >
-                <X size={15} />
-              </button>
-            )}
-            <button
-              className="btn-primary"
-              onClick={() => handleInspectUrl()}
-              disabled={loadingInfo || !url.trim()}
-            >
-              {loadingInfo ? (
-                <>
-                  <RefreshCw size={16} className="job-spinner" />
-                  Extracting...
-                </>
-              ) : (
-                <>
-                  <Sparkles size={16} />
-                  Fetch Media
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Quick Demo Test URLs */}
-        <div className="platforms-bar">
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>Try 1-Click Samples:</span>
-          {SAMPLES.map((sample) => (
-            <button
-              key={sample.name}
-              className="platform-pill sample"
-              onClick={() => {
-                triggerHaptic('light')
-                setUrl(sample.url)
-                handleInspectUrl(sample.url)
-              }}
-            >
-              <Play size={10} />
-              {sample.name}
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {/* Error Notice */}
-      {error && (
-        <div className="alert alert-error">
-          <AlertCircle size={20} style={{ flexShrink: 0 }} />
-          <div>
-            <strong>Extraction Notice:</strong> {error}
-            {error.includes('confirm you’re not a bot') && (
-              <div style={{ marginTop: '0.5rem', fontSize: '0.82rem', color: '#fecaca' }}>
-                💡 <strong>Tip for YouTube on EC2:</strong> YouTube requires cookies when accessed from cloud datacenters. Click the <strong>⚙️ Settings</strong> icon in the header to paste a cookies.txt file or use non-restricted URLs.
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Active Job Tracker */}
-      {jobState && (
-        <div className="job-tracker">
-          <div className="job-header">
-            <div className="job-title-area">
-              {jobState.status === 'completed' ? (
-                <CheckCircle2 size={24} style={{ color: 'var(--success)' }} />
-              ) : jobState.status === 'failed' ? (
-                <AlertCircle size={24} style={{ color: 'var(--error)' }} />
-              ) : (
-                <div className="job-spinner" />
-              )}
-              <div>
-                <div className="job-status-text">
-                  {jobState.status === 'queued' && 'Task Queued on EC2...'}
-                  {jobState.status === 'downloading' && `Downloading Media (${jobState.progress}%)`}
-                  {jobState.status === 'processing' && 'Converting & Merging with FFmpeg...'}
-                  {jobState.status === 'completed' && 'Media Ready for Download!'}
-                  {jobState.status === 'failed' && 'Download Process Failed'}
-                </div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-dim)' }}>
-                  {jobState.title || (mediaInfo ? mediaInfo.title : 'Media File')}
-                </div>
-              </div>
+      {/* Main Scrollable Content */}
+      <main className="scroll-body">
+        {/* ============================================================== */}
+        {/* TAB 1: SAVER (HOME) */}
+        {/* ============================================================== */}
+        {activeNav === 'saver' && (
+          <>
+            {/* Accessible Clear Hero */}
+            <div className="hero-box">
+              <h1>
+                Save Any Video & Music. <br />
+                <span>Zero Limits. High Quality.</span>
+              </h1>
+              <p>
+                Download clean videos and audio directly to your phone from TikTok, YouTube,
+                Instagram, and X.
+              </p>
             </div>
 
-            <div className="job-stats">
-              {jobState.speed && <span>⚡ {jobState.speed}</span>}
-              {jobState.filesize_formatted && <span>📦 {jobState.filesize_formatted}</span>}
-              {jobState.eta && <span>⏳ {jobState.eta}</span>}
-            </div>
-          </div>
+            {/* Input & Action Form Card (Clean Spacing, Zero Overlap) */}
+            <div className="form-card">
+              <label className="form-label">
+                <span>Video or Audio Link</span>
+              </label>
 
-          {/* Progress Bar */}
-          <div className="progress-container">
-            <div
-              className="progress-fill"
-              style={{
-                width: `${jobState.progress || (jobState.status === 'completed' ? 100 : 5)}%`,
-                background:
-                  jobState.status === 'completed'
-                    ? 'linear-gradient(90deg, #10b981, #059669)'
-                    : 'var(--accent-gradient)'
-              }}
-            />
-          </div>
-
-          {/* Download Action Button once Ready */}
-          {jobState.status === 'completed' && jobState.download_url && (
-            <div className="job-complete-action">
-              <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                {Capacitor.isNativePlatform() ? 'Ready to save directly to device' : 'Saved locally on VPS • Auto-cleaned after 45 mins'}
-              </span>
-              {Capacitor.isNativePlatform() ? (
-                <button
-                  onClick={() => handleNativeDownloadOrShare(jobState.download_url, jobState.filename)}
-                  disabled={downloadingToDevice}
-                  className="btn-success"
-                >
-                  {downloadingToDevice ? (
-                    <>
-                      <RefreshCw size={18} className="job-spinner" />
-                      Saving to Device...
-                    </>
-                  ) : (
-                    <>
-                      <Share2 size={18} />
-                      Save & Share Media ({jobState.filesize_formatted})
-                    </>
-                  )}
-                </button>
-              ) : (
-                <a
-                  href={`${getApiUrl()}${jobState.download_url}`}
-                  download
-                  className="btn-success"
-                  onClick={() => triggerHaptic('medium')}
-                >
-                  <Download size={18} />
-                  Download File ({jobState.filesize_formatted})
-                </a>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Media Details & Format Selection Card */}
-      {mediaInfo && (
-        <div className="media-card">
-          <div className="media-header">
-            <div className="thumbnail-wrap">
-              {mediaInfo.thumbnail ? (
-                <img src={mediaInfo.thumbnail} alt={mediaInfo.title} />
-              ) : (
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    height: '100%',
-                    color: 'var(--text-dim)'
-                  }}
-                >
-                  <Video size={48} />
-                </div>
-              )}
-              {mediaInfo.duration_formatted && (
-                <span className="duration-badge">{mediaInfo.duration_formatted}</span>
-              )}
-            </div>
-
-            <div className="media-details">
-              <div className="media-meta-top">
-                <span className="platform-badge">{mediaInfo.platform}</span>
-                <h3 className="media-title">{mediaInfo.title}</h3>
-                <div className="media-author">
-                  <span>Uploaded by:</span>
-                  {mediaInfo.channel_url ? (
-                    <a
-                      href={mediaInfo.channel_url}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {mediaInfo.channel}
-                    </a>
-                  ) : (
-                    <span>{mediaInfo.channel}</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Format Switcher Tabs */}
-              <div className="format-tabs">
-                <button
-                  className={`tab-btn ${activeTab === 'video' ? 'active' : ''}`}
-                  onClick={() => {
-                    triggerHaptic('selection')
-                    setActiveTab('video')
-                  }}
-                >
-                  <Video size={17} />
-                  Video Formats ({mediaInfo.video_formats?.length || 0})
-                </button>
-                <button
-                  className={`tab-btn ${activeTab === 'audio' ? 'active' : ''}`}
-                  onClick={() => {
-                    triggerHaptic('selection')
-                    setActiveTab('audio')
-                  }}
-                >
-                  <Music size={17} />
-                  Audio Extraction (MP3/M4A)
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Video Options */}
-          {activeTab === 'video' && (
-            <div className="formats-grid">
-              {mediaInfo.video_formats && mediaInfo.video_formats.length > 0 ? (
-                mediaInfo.video_formats.map((fmt) => (
-                  <div key={fmt.format_id} className="format-card">
-                    <div className="format-info">
-                      <div className="format-res">
-                        {fmt.resolution}
-                        <span className="format-tag">{fmt.ext || 'MP4'}</span>
-                      </div>
-                      <div className="format-meta">
-                        {fmt.filesize_formatted}
-                        {fmt.fps ? ` • ${fmt.fps} fps` : ''}
-                      </div>
-                    </div>
-                    <button
-                      className="btn-download-sm"
-                      onClick={() => handleStartDownload(fmt.format_id, false)}
-                      disabled={jobState && jobState.status === 'downloading'}
-                    >
-                      <Download size={14} />
-                      Download
-                    </button>
-                  </div>
-                ))
-              ) : (
-                <div style={{ color: 'var(--text-dim)', padding: '1rem' }}>
-                  No standalone video streams detected. Try the Audio extraction tab.
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Audio Options */}
-          {activeTab === 'audio' && (
-            <div className="formats-grid">
-              {mediaInfo.audio_formats?.map((fmt) => (
-                <div key={fmt.format_id} className="format-card">
-                  <div className="format-info">
-                    <div className="format-res">
-                      {fmt.ext.toUpperCase()}
-                      <span className="format-tag">AUDIO</span>
-                    </div>
-                    <div className="format-meta">{fmt.label}</div>
-                  </div>
+              {/* URL Input Box with Integrated Paste Button */}
+              <div className="url-input-container">
+                <input
+                  type="url"
+                  className="url-input"
+                  placeholder="Paste TikTok, YouTube, or X link..."
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleInspectUrl()}
+                />
+                {url ? (
                   <button
-                    className="btn-download-sm"
-                    onClick={() => handleStartDownload(fmt.format_id, true, fmt.bitrate)}
-                    disabled={jobState && jobState.status === 'downloading'}
+                    className="btn-clear-url"
+                    onClick={() => {
+                      setUrl('')
+                      setMediaInfo(null)
+                    }}
+                    title="Clear link"
                   >
-                    <Download size={14} />
-                    Extract
+                    <X size={18} />
                   </button>
+                ) : (
+                  <button
+                    className="btn-paste-action"
+                    onClick={handlePasteFromClipboard}
+                    title="Paste link from clipboard"
+                  >
+                    <ClipboardPaste size={14} />
+                    PASTE
+                  </button>
+                )}
+              </div>
+
+              {/* High-Visibility Accessible Orange Download Button */}
+              <button
+                className="btn-download-primary"
+                onClick={() => {
+                  if (mediaInfo) {
+                    const topFmt = mediaInfo.video_formats?.[0]
+                    if (topFmt) handleStartDownload(topFmt.format_id, false)
+                  } else {
+                    handleInspectUrl()
+                  }
+                }}
+                disabled={loadingInfo || (!url.trim() && !mediaInfo)}
+              >
+                {loadingInfo ? (
+                  <>
+                    <RefreshCw size={20} className="spin-indicator" />
+                    Finding Media...
+                  </>
+                ) : (
+                  <>
+                    <Download size={22} />
+                    DOWNLOAD NOW
+                  </>
+                )}
+              </button>
+
+              {/* Quick Sample Test Chips (Generously spaced below button) */}
+              <div className="samples-wrapper">
+                <span className="samples-header-text">Try sample links:</span>
+                <div className="samples-row">
+                  {SAMPLES.map((s) => (
+                    <button
+                      key={s.name}
+                      className="sample-pill-btn"
+                      onClick={() => {
+                        triggerHaptic('light')
+                        setUrl(s.url)
+                        handleInspectUrl(s.url)
+                      }}
+                    >
+                      <Play size={12} fill="currentColor" />
+                      {s.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Dedicated Android APK Download Banner */}
+            <div className="apk-banner-card">
+              <div className="apk-banner-text">
+                <h3>📱 Prefer using an App?</h3>
+                <p>Install SocialDL for Android for the fastest 1-tap download experience.</p>
+              </div>
+              <a
+                href={APK_DOWNLOAD_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-apk-install"
+              >
+                <Smartphone size={16} />
+                Get APK
+              </a>
+            </div>
+
+            {/* Error Notification */}
+            {error && (
+              <div
+                style={{
+                  background: 'var(--error-bg)',
+                  border: '1px solid var(--error-border)',
+                  color: 'var(--error)',
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  fontSize: '0.9rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px'
+                }}
+              >
+                <AlertCircle size={20} style={{ flexShrink: 0 }} />
+                <div>
+                  <strong>Notice:</strong> {error}
+                </div>
+              </div>
+            )}
+
+            {/* Active Download Progress Card */}
+            {jobState && (
+              <div className="active-job-box">
+                <div className="job-header-row">
+                  <div className="job-title-group">
+                    {jobState.status === 'completed' ? (
+                      <CheckCircle2 size={24} style={{ color: 'var(--success)' }} />
+                    ) : jobState.status === 'failed' ? (
+                      <AlertCircle size={24} style={{ color: 'var(--error)' }} />
+                    ) : (
+                      <RefreshCw size={20} className="spin-indicator" style={{ color: 'var(--accent-orange)' }} />
+                    )}
+                    <span className="job-status-heading">
+                      {jobState.status === 'queued' && 'Starting download...'}
+                      {jobState.status === 'downloading' && `Downloading (${jobState.progress}%)`}
+                      {jobState.status === 'processing' && 'Finishing audio & video...'}
+                      {jobState.status === 'completed' && 'Media Ready!'}
+                      {jobState.status === 'failed' && 'Download interrupted'}
+                    </span>
+                  </div>
+                  <div className="job-meta-metrics">
+                    {jobState.speed && <span>⚡ {jobState.speed}</span>}
+                  </div>
+                </div>
+
+                <div className="job-progress-bg">
+                  <div
+                    className="job-progress-bar"
+                    style={{
+                      width: `${jobState.progress || (jobState.status === 'completed' ? 100 : 8)}%`,
+                      background:
+                        jobState.status === 'completed'
+                          ? 'var(--success)'
+                          : 'var(--accent-orange)'
+                    }}
+                  />
+                </div>
+
+                {jobState.status === 'completed' && jobState.download_url && (
+                  <div style={{ marginTop: '4px' }}>
+                    {Capacitor.isNativePlatform() ? (
+                      <button
+                        onClick={() =>
+                          handleNativeDownloadOrShare(
+                            jobState.download_url,
+                            jobState.filename,
+                            jobState.title
+                          )
+                        }
+                        disabled={downloadingToDevice}
+                        className="btn-save-ready"
+                      >
+                        {downloadingToDevice ? (
+                          <>
+                            <RefreshCw size={18} className="spin-indicator" />
+                            Saving to Device...
+                          </>
+                        ) : (
+                          <>
+                            <Share2 size={18} />
+                            Save to Device / Share
+                          </>
+                        )}
+                      </button>
+                    ) : (
+                      <a
+                        href={`${getApiUrl()}${jobState.download_url}`}
+                        download
+                        className="btn-save-ready"
+                        onClick={() => triggerHaptic('medium')}
+                      >
+                        <Download size={18} />
+                        Download File ({jobState.filesize_formatted || 'Save'})
+                      </a>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Inspect Media Details & Cupertino Format Switcher */}
+            {mediaInfo && (
+              <div className="media-inspect-box">
+                <div className="inspect-header-grid">
+                  <div className="inspect-thumbnail-box">
+                    {mediaInfo.thumbnail ? (
+                      <img src={mediaInfo.thumbnail} alt={mediaInfo.title} />
+                    ) : (
+                      <div
+                        style={{
+                          height: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#fff'
+                        }}
+                      >
+                        <Video size={24} />
+                      </div>
+                    )}
+                    {mediaInfo.duration_formatted && (
+                      <span className="inspect-duration-pill">{mediaInfo.duration_formatted}</span>
+                    )}
+                  </div>
+                  <div className="inspect-info-col">
+                    <h3 className="inspect-media-title">{mediaInfo.title}</h3>
+                    <div className="inspect-author-name">
+                      {mediaInfo.channel || mediaInfo.platform}
+                    </div>
+                  </div>
+                </div>
+
+                {/* High Contrast Segmented Format Toggle */}
+                <div className="segmented-toggle">
+                  <button
+                    className={`segmented-toggle-btn ${activeTab === 'video' ? 'active' : ''}`}
+                    onClick={() => {
+                      triggerHaptic('selection')
+                      setActiveTab('video')
+                    }}
+                  >
+                    <Video size={16} />
+                    Video (HD)
+                  </button>
+                  <button
+                    className={`segmented-toggle-btn ${activeTab === 'audio' ? 'active' : ''}`}
+                    onClick={() => {
+                      triggerHaptic('selection')
+                      setActiveTab('audio')
+                    }}
+                  >
+                    <Music size={16} />
+                    Audio (MP3)
+                  </button>
+                </div>
+
+                {/* Format Options Rows */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {activeTab === 'video' &&
+                    mediaInfo.video_formats?.map((fmt) => (
+                      <div key={fmt.format_id} className="format-item-row">
+                        <div>
+                          <div className="format-title-line">
+                            {fmt.resolution}
+                            <span className="format-tag-badge">
+                              {fmt.ext?.toUpperCase() || 'MP4'}
+                            </span>
+                          </div>
+                          <div className="format-meta-line">
+                            {fmt.filesize_formatted} {fmt.fps ? `• ${fmt.fps}fps` : ''}
+                          </div>
+                        </div>
+                        <button
+                          className="btn-format-download"
+                          onClick={() => handleStartDownload(fmt.format_id, false)}
+                          disabled={jobState && jobState.status === 'downloading'}
+                        >
+                          <Download size={14} />
+                          Save
+                        </button>
+                      </div>
+                    ))}
+
+                  {activeTab === 'audio' &&
+                    mediaInfo.audio_formats?.map((fmt) => (
+                      <div key={fmt.format_id} className="format-item-row">
+                        <div>
+                          <div className="format-title-line">
+                            {fmt.ext.toUpperCase()} Audio
+                            <span className="format-tag-badge">Lossless</span>
+                          </div>
+                          <div className="format-meta-line">{fmt.label}</div>
+                        </div>
+                        <button
+                          className="btn-format-download"
+                          onClick={() => handleStartDownload(fmt.format_id, true, fmt.bitrate)}
+                          disabled={jobState && jobState.status === 'downloading'}
+                        >
+                          <Download size={14} />
+                          Extract
+                        </button>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* Recent Downloads Section */}
+            <div className="section-title-row">
+              <span className="section-title">Recent Downloads</span>
+              {history.length > 0 && (
+                <button
+                  className="section-action-link"
+                  onClick={() => {
+                    triggerHaptic('light')
+                    setActiveNav('library')
+                  }}
+                >
+                  See All ({history.length})
+                </button>
+              )}
+            </div>
+
+            <div className="recent-items-list">
+              {history.slice(0, 3).map((item) => (
+                <div key={item.id} className="recent-item-card">
+                  <div className="recent-thumb">
+                    <img
+                      src={
+                        item.thumbnail ||
+                        'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=300&q=80'
+                      }
+                      alt={item.title}
+                    />
+                    <div className="recent-play-badge">
+                      <Play size={14} fill="currentColor" />
+                    </div>
+                  </div>
+
+                  <div className="recent-text-details">
+                    <div className="recent-title-text">{item.title}</div>
+                    <div className="recent-meta-text">
+                      <span
+                        style={{
+                          fontWeight: 700,
+                          color: 'var(--accent-orange)',
+                          textTransform: 'uppercase'
+                        }}
+                      >
+                        {item.ext}
+                      </span>
+                      <span>• {item.filesize || 'Saved'}</span>
+                      {item.duration && <span>• {item.duration}</span>}
+                    </div>
+                  </div>
+
+                  {item.download_url ? (
+                    <button
+                      className="recent-circle-btn"
+                      onClick={() =>
+                        Capacitor.isNativePlatform()
+                          ? handleNativeDownloadOrShare(
+                              item.download_url,
+                              item.filename,
+                              item.title
+                            )
+                          : window.open(`${getApiUrl()}${item.download_url}`)
+                      }
+                      title="Save / Share"
+                    >
+                      <Share2 size={16} />
+                    </button>
+                  ) : (
+                    <div
+                      className="recent-circle-btn"
+                      style={{ cursor: 'default', color: 'var(--success)' }}
+                    >
+                      <Check size={16} />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
-          )}
-        </div>
-      )}
 
-      {/* Settings / Vercel Configuration Modal */}
-      {showSettings && (
-        <div className="modal-overlay" onClick={() => setShowSettings(false)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Backend & Vercel Deployment</h3>
+            {/* Footer with King-Austin Credits & Domain */}
+            <footer className="app-credits-footer">
+              <div>
+                SocialDL • Built with ❤️ by <strong>King-Austin</strong>
+              </div>
+              <div>
+                Official Domain:{' '}
+                <a
+                  href="https://social.nworahebuka.com.ng"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  social.nworahebuka.com.ng
+                </a>
+              </div>
+            </footer>
+          </>
+        )}
+
+        {/* ============================================================== */}
+        {/* TAB 2: LIBRARY */}
+        {/* ============================================================== */}
+        {activeNav === 'library' && (
+          <>
+            <div className="hero-box">
+              <h1>Downloads Library</h1>
+              <p>All videos and audio tracks stored on this device.</p>
+            </div>
+
+            {/* Filter Pills */}
+            <div className="segmented-toggle">
               <button
-                className="btn-icon"
-                onClick={() => setShowSettings(false)}
+                className={`segmented-toggle-btn ${libraryFilter === 'all' ? 'active' : ''}`}
+                onClick={() => {
+                  triggerHaptic('selection')
+                  setLibraryFilter('all')
+                }}
               >
-                <X size={18} />
+                All ({history.length})
+              </button>
+              <button
+                className={`segmented-toggle-btn ${libraryFilter === 'video' ? 'active' : ''}`}
+                onClick={() => {
+                  triggerHaptic('selection')
+                  setLibraryFilter('video')
+                }}
+              >
+                Videos
+              </button>
+              <button
+                className={`segmented-toggle-btn ${libraryFilter === 'audio' ? 'active' : ''}`}
+                onClick={() => {
+                  triggerHaptic('selection')
+                  setLibraryFilter('audio')
+                }}
+              >
+                Audio
               </button>
             </div>
 
-            {/* Architecture Details */}
-            <div className="arch-card">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, color: 'var(--text-main)' }}>
-                <Server size={16} style={{ color: 'var(--accent-primary)' }} />
-                Self-Hosted Architecture: EC2 + Vercel
+            {/* Items List */}
+            {filteredHistory.length === 0 ? (
+              <div
+                style={{
+                  textAlign: 'center',
+                  padding: '3rem 1rem',
+                  color: 'var(--text-muted)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '12px'
+                }}
+              >
+                <Folder size={44} style={{ color: 'var(--border-focus)' }} />
+                <div style={{ fontSize: '1.05rem', fontWeight: 600 }}>No saved downloads yet</div>
+                <button
+                  className="btn-download-primary"
+                  style={{ width: 'auto', padding: '10px 24px', fontSize: '0.95rem' }}
+                  onClick={() => setActiveNav('saver')}
+                >
+                  Start Saving Videos
+                </button>
               </div>
-              <div>
-                • <strong>Backend:</strong> Running on EC2 VPS (FastAPI + yt-dlp + FFmpeg on port 8055)
+            ) : (
+              <div className="recent-items-list">
+                {filteredHistory.map((item) => (
+                  <div key={item.id} className="recent-item-card">
+                    <div className="recent-thumb">
+                      <img
+                        src={
+                          item.thumbnail ||
+                          'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=300&q=80'
+                        }
+                        alt={item.title}
+                      />
+                      <div className="recent-play-badge">
+                        <Play size={14} fill="currentColor" />
+                      </div>
+                    </div>
+
+                    <div className="recent-text-details">
+                      <div className="recent-title-text">{item.title}</div>
+                      <div className="recent-meta-text">
+                        <span
+                          style={{
+                            fontWeight: 700,
+                            color: 'var(--accent-orange)',
+                            textTransform: 'uppercase'
+                          }}
+                        >
+                          {item.ext}
+                        </span>
+                        <span>• {item.filesize}</span>
+                        {item.duration && <span>• {item.duration}</span>}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      {item.download_url && (
+                        <button
+                          className="recent-circle-btn"
+                          onClick={() =>
+                            Capacitor.isNativePlatform()
+                              ? handleNativeDownloadOrShare(
+                                  item.download_url,
+                                  item.filename,
+                                  item.title
+                                )
+                              : window.open(`${getApiUrl()}${item.download_url}`)
+                          }
+                          title="Share / Save"
+                        >
+                          <Share2 size={16} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+
+                <button
+                  onClick={handleClearHistory}
+                  style={{
+                    background: 'transparent',
+                    border: '1px dashed var(--error)',
+                    color: 'var(--error)',
+                    padding: '12px',
+                    borderRadius: '12px',
+                    fontSize: '0.88rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    marginTop: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  <Trash2 size={16} />
+                  Clear Download History
+                </button>
               </div>
-              <div>
-                • <strong>Frontend:</strong> Serverless static application ready to deploy to Vercel
+            )}
+          </>
+        )}
+
+        {/* ============================================================== */}
+        {/* TAB 3: APPS */}
+        {/* ============================================================== */}
+        {activeNav === 'apps' && (
+          <>
+            <div className="hero-box">
+              <h1>Supported Platforms</h1>
+              <p>Tap any platform to load a test link or paste your own URL.</p>
+            </div>
+
+            <div className="apps-grid-box">
+              <div
+                className="app-card-item"
+                onClick={() => {
+                  triggerHaptic('light')
+                  setUrl('https://vt.tiktok.com/ZSb28AUs8/')
+                  setActiveNav('saver')
+                  handleInspectUrl('https://vt.tiktok.com/ZSb28AUs8/')
+                }}
+              >
+                <div style={{ fontSize: '1.6rem' }}>🎵</div>
+                <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>TikTok</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  Clean 1080p vertical video with no watermark.
+                </div>
+              </div>
+
+              <div
+                className="app-card-item"
+                onClick={() => {
+                  triggerHaptic('light')
+                  setUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ')
+                  setActiveNav('saver')
+                  handleInspectUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ')
+                }}
+              >
+                <div style={{ fontSize: '1.6rem' }}>▶️</div>
+                <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>YouTube</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  4K / 1080p 60fps video & 320kbps MP3 audio.
+                </div>
+              </div>
+
+              <div
+                className="app-card-item"
+                onClick={() => {
+                  triggerHaptic('light')
+                  setUrl('https://x.com/LisPower1/status/1001551623938805763')
+                  setActiveNav('saver')
+                  handleInspectUrl('https://x.com/LisPower1/status/1001551623938805763')
+                }}
+              >
+                <div style={{ fontSize: '1.6rem' }}>✖️</div>
+                <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>Twitter / X</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  Post videos, space clips, and animated GIFs.
+                </div>
+              </div>
+
+              <div
+                className="app-card-item"
+                onClick={() => {
+                  triggerHaptic('light')
+                  setUrl('https://soundcloud.com/octobersveryown/drake-back-to-back-freestyle')
+                  setActiveNav('saver')
+                  handleInspectUrl(
+                    'https://soundcloud.com/octobersveryown/drake-back-to-back-freestyle'
+                  )
+                }}
+              >
+                <div style={{ fontSize: '1.6rem' }}>🎧</div>
+                <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>SoundCloud</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  Lossless audio downloads and full tracks.
+                </div>
+              </div>
+
+              <div
+                className="app-card-item"
+                onClick={() => {
+                  triggerHaptic('light')
+                  setActiveNav('saver')
+                }}
+              >
+                <div style={{ fontSize: '1.6rem' }}>📷</div>
+                <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>Instagram</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  Reels, stories, posts, and IGTV media.
+                </div>
+              </div>
+
+              <div
+                className="app-card-item"
+                onClick={() => {
+                  triggerHaptic('light')
+                  setActiveNav('saver')
+                }}
+              >
+                <div style={{ fontSize: '1.6rem' }}>💬</div>
+                <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>Reddit</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  Merged video with sound from viral posts.
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ============================================================== */}
+        {/* TAB 4: SETTINGS */}
+        {/* ============================================================== */}
+        {activeNav === 'settings' && (
+          <>
+            <div className="hero-box">
+              <h1>Settings & About</h1>
+              <p>App details, credits, and engine options.</p>
+            </div>
+
+            {/* Official Credits Card */}
+            <div className="settings-card" style={{ borderLeft: '4px solid var(--accent-orange)' }}>
+              <div style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-primary)' }}>
+                About SocialDL
+              </div>
+              <div className="settings-item-row">
+                <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Built by</span>
+                <strong style={{ color: 'var(--accent-orange)' }}>King-Austin</strong>
+              </div>
+              <div className="settings-item-row">
+                <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Domain</span>
+                <a
+                  href="https://social.nworahebuka.com.ng"
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ color: 'var(--accent-orange)', fontWeight: 600 }}
+                >
+                  social.nworahebuka.com.ng
+                </a>
+              </div>
+              <div className="settings-item-row">
+                <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Framework</span>
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                  React + Capacitor Mobile
+                </span>
               </div>
             </div>
 
-            {/* Backend URL setting */}
-            <div className="form-group">
-              <label>API Endpoint (EC2 VPS URL)</label>
-              <input
-                type="text"
-                placeholder="http://YOUR_EC2_IP:8055 (or leave empty for local proxy)"
-                value={customBackendUrl}
-                onChange={(e) => handleSaveBackendUrl(e.target.value)}
-              />
-              <span className="form-hint">
-                When deployed to Vercel, enter your EC2 Public IP or domain here so this serverless frontend can communicate with your VPS.
-              </span>
+            {/* Mobile App APK Card */}
+            <div className="apk-banner-card">
+              <div className="apk-banner-text">
+                <h3>📱 Download SocialDL APK</h3>
+                <p>Install directly on Android for the smoothest mobile app experience.</p>
+              </div>
+              <a
+                href={APK_DOWNLOAD_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-apk-install"
+              >
+                <Download size={16} />
+                Download APK
+              </a>
             </div>
 
-            {/* Storage Telemetry */}
-            {health && (
-              <div className="arch-card">
-                <div style={{ fontWeight: 600, color: 'var(--text-main)' }}>EC2 Disk & Engine Status</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.8rem' }}>
-                  <div>Free Disk: <strong>{health.storage.free_gb} GB</strong></div>
-                  <div>Used Disk: <strong>{health.storage.used_gb} GB</strong></div>
-                  <div>yt-dlp: <strong>{health.ytdlp_version}</strong></div>
-                  <div>FFmpeg: <strong>{health.ffmpeg_installed ? 'Installed ✅' : 'Missing ❌'}</strong></div>
+            {/* Status Information */}
+            <div className="settings-card">
+              <div className="settings-item-row">
+                <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                  Engine Connection
+                </span>
+                <span style={{ color: 'var(--success)', fontWeight: 700, fontSize: '0.88rem' }}>
+                  Online & Ready 🟢
+                </span>
+              </div>
+              <div className="settings-item-row">
+                <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                  Auto-Cleaner
+                </span>
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                  Cleans temp files every 45 mins
+                </span>
+              </div>
+            </div>
+
+            {/* Expandable Advanced Engine Drawer */}
+            <button
+              className="btn-toggle-advanced"
+              onClick={() => {
+                triggerHaptic('light')
+                setShowAdvancedSettings(!showAdvancedSettings)
+              }}
+            >
+              <Sliders size={16} />
+              {showAdvancedSettings ? 'Hide Advanced Settings' : 'Advanced Diagnostics & Cookies'}
+              {showAdvancedSettings ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+            </button>
+
+            {showAdvancedSettings && (
+              <div className="settings-card">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    Custom Backend Endpoint
+                  </label>
+                  <input
+                    type="text"
+                    value={customBackendUrl}
+                    placeholder="http://YOUR_EC2_IP:8055 (or leave empty for default)"
+                    onChange={(e) => handleSaveBackendUrl(e.target.value)}
+                    style={{
+                      background: 'var(--bg-subtle)',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: '8px',
+                      padding: '8px 12px',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.85rem',
+                      fontFamily: 'var(--font-mono)'
+                    }}
+                  />
+                  <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                    Used when frontend is deployed on Vercel to connect to the backend VPS.
+                  </span>
+                </div>
+
+                {health && (
+                  <div
+                    style={{
+                      padding: '10px',
+                      background: 'var(--bg-subtle)',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-subtle)',
+                      fontSize: '0.8rem',
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: '8px'
+                    }}
+                  >
+                    <div>
+                      Free Disk: <strong>{health.storage.free_gb} GB</strong>
+                    </div>
+                    <div>
+                      Engine: <strong>{health.ytdlp_version}</strong>
+                    </div>
+                    <div>
+                      FFmpeg: <strong>{health.ffmpeg_installed ? 'Active ✅' : 'Missing ❌'}</strong>
+                    </div>
+                    <div>
+                      Host: <strong>EC2 Cloud</strong>
+                    </div>
+                  </div>
+                )}
+
+                {/* Netscape Cookies Editor */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
+                    <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                      YouTube cookies.txt
+                    </span>
+                    {cookiesInfo?.configured ? (
+                      <span style={{ color: 'var(--success)', fontWeight: 600 }}>
+                        Active ({cookiesInfo.size_bytes}B)
+                      </span>
+                    ) : (
+                      <span style={{ color: 'var(--text-muted)' }}>None</span>
+                    )}
+                  </div>
+                  <textarea
+                    rows={4}
+                    placeholder="Paste Netscape cookies.txt content here..."
+                    value={cookiesInput}
+                    onChange={(e) => setCookiesInput(e.target.value)}
+                    style={{
+                      background: 'var(--bg-subtle)',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: '8px',
+                      padding: '8px',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.78rem',
+                      fontFamily: 'var(--font-mono)'
+                    }}
+                  />
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      className="btn-format-download"
+                      style={{ padding: '6px 14px', fontSize: '0.8rem' }}
+                      onClick={handleSaveCookies}
+                      disabled={savingCookies || !cookiesInput.trim()}
+                    >
+                      Save Cookies
+                    </button>
+                    {cookiesInfo?.configured && (
+                      <button
+                        onClick={handleDeleteCookies}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: 'var(--error)',
+                          fontSize: '0.8rem',
+                          cursor: 'pointer',
+                          fontWeight: 600
+                        }}
+                      >
+                        Delete Cookies
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
+          </>
+        )}
+      </main>
 
-            {/* Cookies Manager */}
-            <div className="form-group">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <label>YouTube / Netscape Cookies.txt</label>
-                {cookiesInfo?.configured ? (
-                  <span style={{ fontSize: '0.75rem', color: 'var(--success)' }}>Active ({cookiesInfo.size_bytes} bytes)</span>
-                ) : (
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-dim)' }}>Not Configured</span>
-                )}
-              </div>
-              <textarea
-                placeholder="Paste Netscape cookies.txt content here to bypass YouTube bot detection on cloud EC2 IPs..."
-                value={cookiesInput}
-                onChange={(e) => setCookiesInput(e.target.value)}
-              />
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.4rem' }}>
-                <button
-                  className="btn-primary"
-                  style={{ padding: '0.4rem 1rem', fontSize: '0.82rem' }}
-                  onClick={handleSaveCookies}
-                  disabled={savingCookies || !cookiesInput.trim()}
-                >
-                  Save Cookies
-                </button>
-                {cookiesInfo?.configured && (
-                  <button
-                    className="btn-ghost"
-                    style={{ color: '#f87171' }}
-                    onClick={handleDeleteCookies}
-                  >
-                    Delete Cookies
-                  </button>
-                )}
-              </div>
-            </div>
+      {/* Floating Light Glass Bottom Navigation Dock */}
+      <nav className="bottom-nav-dock">
+        <button
+          className={`nav-tab-item ${activeNav === 'saver' ? 'active' : ''}`}
+          onClick={() => {
+            triggerHaptic('selection')
+            setActiveNav('saver')
+          }}
+        >
+          <Download size={22} />
+          <span className="nav-tab-label">Saver</span>
+        </button>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
-              <button
-                className="btn-primary"
-                onClick={() => setShowSettings(false)}
-              >
-                Close Settings
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+        <button
+          className={`nav-tab-item ${activeNav === 'library' ? 'active' : ''}`}
+          onClick={() => {
+            triggerHaptic('selection')
+            setActiveNav('library')
+          }}
+        >
+          <Folder size={22} />
+          <span className="nav-tab-label">Library</span>
+        </button>
 
-      {/* Footer */}
-      <footer className="footer">
-        <div>
-          SocialDL • Self-Hosted yt-dlp & FFmpeg Cloud Suite
-        </div>
-        <div style={{ color: 'var(--text-dim)', fontSize: '0.75rem' }}>
-          Safe EC2 execution • Autonomous periodic cleanup • Zero impact on existing services
-        </div>
-      </footer>
+        <button
+          className={`nav-tab-item ${activeNav === 'apps' ? 'active' : ''}`}
+          onClick={() => {
+            triggerHaptic('selection')
+            setActiveNav('apps')
+          }}
+        >
+          <LayoutGrid size={22} />
+          <span className="nav-tab-label">Apps</span>
+        </button>
 
-      {/* Mobile Back-to-Exit Toast */}
+        <button
+          className={`nav-tab-item ${activeNav === 'settings' ? 'active' : ''}`}
+          onClick={() => {
+            triggerHaptic('selection')
+            setActiveNav('settings')
+          }}
+        >
+          <Settings size={22} />
+          <span className="nav-tab-label">Settings</span>
+        </button>
+      </nav>
+
+      {/* Hardware Back Button Exit Notice */}
       {showExitToast && (
-        <div className="exit-toast">
-          <AlertCircle size={16} style={{ color: 'var(--accent-secondary)' }} />
-          <span>Press back again to exit SocialDL</span>
+        <div className="exit-notice-toast">
+          <AlertCircle size={16} style={{ color: 'var(--accent-orange)' }} />
+          <span>Tap back again to exit SocialDL</span>
         </div>
       )}
     </div>

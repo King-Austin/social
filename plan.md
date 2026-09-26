@@ -102,9 +102,29 @@
 
 ---
 
-### Phase 7: Verification & Launch Checklist
+### Phase 8: Mobile-First iPhone Revamp
+- [x] Implemented mobile-first centered viewport (`max-width: 440px`).
+- [x] Integrated tactile haptics on tabs, download triggers, and format selection.
+- [x] Added hierarchical mobile back button listener (modal -> tabs -> double-tap to exit).
+
+---
+
+### Phase 9: High-Contrast Light Theme & Accessible Orange Revamp (Completed ✅)
+- [x] Shifted to clean white/light theme (`#FFFFFF` background, deep `#0F172A` text) for high visibility and elder-friendly legibility.
+- [x] Normal warm orange branding (`#EA580C`) replacing neon orange.
+- [x] Removed simulated phone hardware engravings (no fake notch, clock, or thick bezels).
+- [x] Expanded centered canvas from 440px to **`520px`** for a more spacious, accessible feel.
+- [x] Resolved layout collision and overlapping between input, download button, and sample chips.
+- [x] Integrated dedicated **"Download App (APK)"** buttons in header, home banner, and Settings tab.
+- [x] Integrated author credits: **Built by King-Austin** and domain **`social.nworahebuka.com.ng`**.
+- [x] Verified production build (`npm run build` completed cleanly in 909ms).
+
+---
+
+### Phase 10: Verification & Launch Checklist
 - [ ] Vercel web app loads with 0 Mixed Content errors in browser DevTools console.
 - [ ] YouTube, TikTok, and Twitter (X) video links extract and download properly on Vercel.
 - [ ] Capacitor Android APK builds and installs on phone.
 - [ ] Mobile app prompts native download/save dialog when video is ready.
 - [ ] EC2 auto-cleaner continues purging files older than 45 minutes to keep VPS disk space healthy.
+

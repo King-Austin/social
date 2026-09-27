@@ -1,0 +1,65 @@
+name: Release SocialDL
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Release SocialDL APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '21'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build Frontend Web Bundle
+        working-directory: frontend
+        env:
+          VITE_APP_VERSION: ${{ github.ref_name }}
+        run: npm run build
+
+      - name: Sync Capacitor Android Project
+        working-directory: frontend
+        run: npx cap sync android
+
+      - name: Build Android APK
+        working-directory: frontend/android
+        run: ./gradlew assembleDebug
+
+      - name: Prepare Release Artifacts
+        run: |
+          cp frontend/android/app/build/outputs/apk/debug/app-debug.apk ./SocialDL.apk
+          python3 scripts/publish-ota.py "${GITHUB_REF_NAME}" "Release build ${GITHUB_REF_NAME}"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: SocialDL ${{ github.ref_name }}
+          files: |
+            SocialDL.apk
+            frontend/public/updates/*.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -234,9 +234,9 @@ export default function App() {
     if (import.meta.env.VITE_API_URL) {
       return import.meta.env.VITE_API_URL.replace(/\/+$/, '')
     }
-    // In native Android APK, connect directly to VPS backend IP
+    // In native Android APK, use the secure HTTPS domain which proxies directly to the backend
     if (Capacitor.isNativePlatform()) {
-      return 'http://34.244.99.37:8055'
+      return 'https://social.nworahebuka.com.ng'
     }
     return ''
   }

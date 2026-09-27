@@ -2,5 +2,5 @@
   "version": "1.0.0",
   "bundle_url": "https://social.nworahebuka.com.ng/updates/dist-v1.0.0.zip",
   "apk_url": "https://social.nworahebuka.com.ng/SocialDL.apk",
-  "changelog": "Initial release with Over-The-Air (OTA) updates support."
+  "changelog": "Enable HTTPS direct connection for native app and AndroidManifest cleartext traffic"
 }

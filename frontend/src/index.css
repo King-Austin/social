@@ -54,7 +54,8 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-body {
+html, body {
+  height: 100%;
   min-height: 100vh;
   min-height: 100dvh;
   background-color: var(--bg-desktop);
@@ -88,18 +89,58 @@ body {
 }
 
 @media (min-width: 640px) {
+  html, body {
+    height: 100%;
+    overflow: hidden; /* Lock the outer desktop window: no outer scroll, no bounce */
+  }
+
+  #root {
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    padding: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
   .app-shell {
-    min-height: 840px;
-    height: 92vh;
-    max-height: 900px;
+    height: 100%;
+    max-height: min(880px, calc(100dvh - 32px));
+    min-height: 0; /* Remove rigid 840px that overflows laptops and shorter screens */
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-viewport);
+  }
+
+  /* Subtle, sleek custom scrollbar for desktop mouse users */
+  .scroll-body {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(234, 88, 12, 0.25) transparent;
+  }
+
+  .scroll-body::-webkit-scrollbar {
+    display: block;
+    width: 6px;
+  }
+
+  .scroll-body::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scroll-body::-webkit-scrollbar-thumb {
+    background: rgba(234, 88, 12, 0.22);
+    border-radius: 9999px;
+  }
+
+  .scroll-body::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-orange);
   }
 }
 
 /* Scrollable Inner Body (Scrolls smoothly between fixed header and sticky footer) */
 .scroll-body {
   flex: 1;
+  min-height: 0; /* Ensures flex container constrains height and scrolls properly */
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior-y: contain;
@@ -212,9 +253,9 @@ body {
   box-shadow: 0 0 6px rgba(22, 163, 74, 0.6);
 }
 
-/* Sidebar Drawer Overlay & Panel */
+/* Sidebar Drawer Overlay & Panel (Constrained within app-shell) */
 .sidebar-backdrop {
-  position: fixed;
+  position: absolute;
   inset: 0;
   background: rgba(15, 23, 42, 0.45);
   backdrop-filter: blur(4px);
@@ -224,12 +265,12 @@ body {
 }
 
 .sidebar-drawer {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   bottom: 0;
   width: 290px;
-  max-width: 82vw;
+  max-width: 82%;
   background: #ffffff;
   z-index: 101;
   display: flex;

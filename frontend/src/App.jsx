@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import {
+  Menu,
   Download,
   Video,
   Music,
@@ -7,7 +8,6 @@ import {
   RefreshCw,
   CheckCircle2,
   AlertCircle,
-  Sparkles,
   Play,
   X,
   Share2,
@@ -49,31 +49,15 @@ export const triggerHaptic = async (type = 'light') => {
   }
 }
 
-// Supported Platform Samples (TikTok, YouTube, X, Instagram only - SoundCloud and Reddit removed)
-const SAMPLES = [
-  {
-    name: 'TikTok',
-    icon: '🎵',
-    url: 'https://vt.tiktok.com/ZSb28AUs8/'
-  },
-  {
-    name: 'YouTube',
-    icon: '▶️',
-    url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
-  },
-  {
-    name: 'X',
-    icon: '✖️',
-    url: 'https://x.com/LisPower1/status/1001551623938805763'
-  },
-  {
-    name: 'Instagram',
-    icon: '📷',
-    url: 'https://www.instagram.com/reel/C-xyz123/'
-  }
+// Supported Platforms (No hardcoded URLs - used for platform selection)
+const PLATFORMS = [
+  { id: 'TikTok', name: 'TikTok', icon: '🎵', placeholder: 'Paste TikTok link here...' },
+  { id: 'YouTube', name: 'YouTube', icon: '▶️', placeholder: 'Paste YouTube link here...' },
+  { id: 'X', name: 'X', icon: '✖️', placeholder: 'Paste Twitter / X link here...' },
+  { id: 'Instagram', name: 'Instagram', icon: '📷', placeholder: 'Paste Instagram link here...' }
 ]
 
-// Initial seed history (TikTok & YouTube/Insta only)
+// Initial seed history
 const INITIAL_DEMO_HISTORY = [
   {
     id: 'demo_1',
@@ -103,13 +87,16 @@ const APK_URL = 'https://social.nworahebuka.com.ng/SocialDL.apk'
 
 export default function App() {
   const [activeNav, setActiveNav] = useState('saver') // 'saver' | 'library' | 'apps' | 'settings'
+  const [showSidebar, setShowSidebar] = useState(false)
 
-  // Input & Media States
+  // Input & Platform Selection States
   const [url, setUrl] = useState('')
+  const [selectedPlatform, setSelectedPlatform] = useState(null) // 'TikTok' | 'YouTube' | 'X' | 'Instagram' | null
   const [loadingInfo, setLoadingInfo] = useState(false)
   const [mediaInfo, setMediaInfo] = useState(null)
   const [error, setError] = useState(null)
   const [activeTab, setActiveTab] = useState('video') // 'video' | 'audio'
+  const inputRef = useRef(null)
 
   // Job tracking
   const [activeTaskId, setActiveTaskId] = useState(null)
@@ -137,10 +124,10 @@ export default function App() {
   const [showExitToast, setShowExitToast] = useState(false)
   const backPressTimerRef = useRef(null)
 
-  const stateRef = useRef({ activeNav, mediaInfo, jobState, backPressedOnce })
+  const stateRef = useRef({ activeNav, showSidebar, mediaInfo, jobState, backPressedOnce })
   useEffect(() => {
-    stateRef.current = { activeNav, mediaInfo, jobState, backPressedOnce }
-  }, [activeNav, mediaInfo, jobState, backPressedOnce])
+    stateRef.current = { activeNav, showSidebar, mediaInfo, jobState, backPressedOnce }
+  }, [activeNav, showSidebar, mediaInfo, jobState, backPressedOnce])
 
   // Save to history helper
   const saveToHistory = (item) => {
@@ -173,20 +160,30 @@ export default function App() {
       try {
         if (Capacitor.isNativePlatform()) {
           backListener = await CapApp.addListener('backButton', async () => {
-            const { activeNav: curNav, mediaInfo: hasMedia, backPressedOnce: pressedOnce } = stateRef.current
+            const { activeNav: curNav, showSidebar: isSidebarOpen, mediaInfo: hasMedia, backPressedOnce: pressedOnce } = stateRef.current
 
+            // 1. If sidebar is open, close it
+            if (isSidebarOpen) {
+              await triggerHaptic('light')
+              setShowSidebar(false)
+              return
+            }
+
+            // 2. If inside Library, Apps, or Settings, return to Saver Home
             if (curNav !== 'saver') {
               await triggerHaptic('light')
               setActiveNav('saver')
               return
             }
 
+            // 3. If on Saver screen with media card open, close card back to clean input
             if (hasMedia) {
               await triggerHaptic('light')
               setMediaInfo(null)
               return
             }
 
+            // 4. Double back to exit
             if (pressedOnce) {
               await triggerHaptic('medium')
               CapApp.exitApp()
@@ -283,6 +280,45 @@ export default function App() {
     }
   }
 
+  // Strict Client-Side URL Validation
+  const validateUrl = (rawUrl) => {
+    const trimmed = (rawUrl || '').trim()
+    if (!trimmed) {
+      return 'Please enter or paste a video link.'
+    }
+
+    if (!/^https?:\/\//i.test(trimmed) || trimmed.includes('\n') || trimmed.includes(' ')) {
+      return 'Please enter a valid link starting with http:// or https://'
+    }
+
+    try {
+      const parsed = new URL(trimmed)
+      const host = parsed.hostname.toLowerCase()
+
+      // Ensure it has a valid domain with a dot
+      if (!host.includes('.')) {
+        return 'Please enter a valid web link.'
+      }
+
+      // Check against supported platforms
+      const isKnown =
+        host.includes('tiktok.com') ||
+        host.includes('youtube.com') ||
+        host.includes('youtu.be') ||
+        host.includes('twitter.com') ||
+        host.includes('x.com') ||
+        host.includes('instagram.com')
+
+      if (!isKnown) {
+        return 'Please paste a link from TikTok, YouTube, X, or Instagram.'
+      }
+    } catch {
+      return 'Please enter a valid video URL.'
+    }
+
+    return null
+  }
+
   // Friendly error sanitization
   const sanitizeErrorMessage = (raw) => {
     if (!raw) return 'Unable to load video. Please check the link and try again.'
@@ -296,7 +332,6 @@ export default function App() {
     if (str.includes('Failed to fetch') || str.includes('NetworkError')) {
       return 'Server is busy or unreachable. Please try again in a few moments.'
     }
-    // Truncate to maximum 90 characters
     return str.length > 90 ? `${str.slice(0, 85)}...` : str
   }
 
@@ -309,6 +344,7 @@ export default function App() {
         if (text && text.trim()) {
           const clean = text.trim()
           setUrl(clean)
+          setError(null)
           await triggerHaptic('success')
           handleInspectUrl(clean)
           return
@@ -320,9 +356,23 @@ export default function App() {
 
     const fallbackVal = prompt('Paste link:')
     if (fallbackVal && fallbackVal.trim()) {
-      setUrl(fallbackVal.trim())
-      handleInspectUrl(fallbackVal.trim())
+      const clean = fallbackVal.trim()
+      setUrl(clean)
+      setError(null)
+      handleInspectUrl(clean)
     }
+  }
+
+  // Handle platform button selection (Does NOT auto-download dummy links)
+  const handlePlatformClick = (platformId) => {
+    triggerHaptic('selection')
+    if (selectedPlatform === platformId) {
+      setSelectedPlatform(null)
+    } else {
+      setSelectedPlatform(platformId)
+    }
+    setError(null)
+    inputRef.current?.focus()
   }
 
   // Inspect URL / Fetch Media
@@ -330,17 +380,24 @@ export default function App() {
     await triggerHaptic('medium')
     const finalUrl = (targetUrl || '').trim()
 
-    // Client-side link format validation
-    if (!finalUrl) {
+    // Validate
+    const validationError = validateUrl(finalUrl)
+    if (validationError) {
       await triggerHaptic('error')
-      setError('Please paste a video link.')
+      setError(validationError)
       return
     }
 
-    if (!/^https?:\/\//i.test(finalUrl) || finalUrl.includes('\n') || finalUrl.includes(' ')) {
-      await triggerHaptic('error')
-      setError('Please enter a valid video link (e.g. TikTok, YouTube, Instagram, X).')
-      return
+    // Auto-sync platform pill
+    try {
+      const parsed = new URL(finalUrl)
+      const host = parsed.hostname.toLowerCase()
+      if (host.includes('tiktok.com')) setSelectedPlatform('TikTok')
+      else if (host.includes('youtube.com') || host.includes('youtu.be')) setSelectedPlatform('YouTube')
+      else if (host.includes('twitter.com') || host.includes('x.com')) setSelectedPlatform('X')
+      else if (host.includes('instagram.com')) setSelectedPlatform('Instagram')
+    } catch {
+      // non-critical
     }
 
     setLoadingInfo(true)
@@ -499,6 +556,11 @@ export default function App() {
     }, 1500)
   }
 
+  // Dynamic input placeholder based on selected platform
+  const currentPlaceholder =
+    PLATFORMS.find((p) => p.id === selectedPlatform)?.placeholder ||
+    'Paste TikTok, YouTube, X, or Instagram link...'
+
   // Filtered History
   const filteredHistory = history.filter((item) => {
     if (libraryFilter === 'video') return item.ext === 'mp4' || item.ext === 'webm' || !item.ext
@@ -508,12 +570,19 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      {/* Top Header: Minimal, iPhone App Style */}
+      {/* Top Header: 3-Lines Menu + Title + APK Button */}
       <header className="app-header">
         <div className="brand-section">
-          <div className="brand-icon-box">
-            <Sparkles size={18} />
-          </div>
+          <button
+            className="btn-menu-toggle"
+            onClick={() => {
+              triggerHaptic('light')
+              setShowSidebar(true)
+            }}
+            aria-label="Open Navigation Menu"
+          >
+            <Menu size={22} />
+          </button>
           <span className="brand-text-name">
             Social<span>DL</span>
           </span>
@@ -536,7 +605,98 @@ export default function App() {
         </div>
       </header>
 
-      {/* Scrollable Content Body */}
+      {/* Slide-out Navigation Sidebar Drawer */}
+      {showSidebar && (
+        <>
+          <div
+            className="sidebar-backdrop"
+            onClick={() => setShowSidebar(false)}
+          />
+          <aside className="sidebar-drawer">
+            <div className="sidebar-header">
+              <span className="sidebar-brand">
+                Social<span>DL</span>
+              </span>
+              <button
+                className="sidebar-close-btn"
+                onClick={() => setShowSidebar(false)}
+                aria-label="Close menu"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <nav className="sidebar-nav-list">
+              <button
+                className={`sidebar-nav-item ${activeNav === 'saver' ? 'active' : ''}`}
+                onClick={() => {
+                  triggerHaptic('selection')
+                  setActiveNav('saver')
+                  setShowSidebar(false)
+                }}
+              >
+                <Download size={20} />
+                <span>Saver</span>
+              </button>
+
+              <button
+                className={`sidebar-nav-item ${activeNav === 'library' ? 'active' : ''}`}
+                onClick={() => {
+                  triggerHaptic('selection')
+                  setActiveNav('library')
+                  setShowSidebar(false)
+                }}
+              >
+                <Folder size={20} />
+                <span>Downloads Library</span>
+              </button>
+
+              <button
+                className={`sidebar-nav-item ${activeNav === 'apps' ? 'active' : ''}`}
+                onClick={() => {
+                  triggerHaptic('selection')
+                  setActiveNav('apps')
+                  setShowSidebar(false)
+                }}
+              >
+                <LayoutGrid size={20} />
+                <span>Supported Apps</span>
+              </button>
+
+              <button
+                className={`sidebar-nav-item ${activeNav === 'settings' ? 'active' : ''}`}
+                onClick={() => {
+                  triggerHaptic('selection')
+                  setActiveNav('settings')
+                  setShowSidebar(false)
+                }}
+              >
+                <Settings size={20} />
+                <span>About & Credits</span>
+              </button>
+            </nav>
+
+            <div className="sidebar-footer">
+              <a
+                href={APK_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="sidebar-apk-btn"
+              >
+                <Smartphone size={16} />
+                <span>Download Android APK</span>
+              </a>
+              <div className="sidebar-credits-text">
+                Built with ❤️ by <strong>King-Austin</strong>
+                <br />
+                social.nworahebuka.com.ng
+              </div>
+            </div>
+          </aside>
+        </>
+      )}
+
+      {/* Scrollable Content Body (Scrolls freely between fixed header and sticky bottom nav) */}
       <main className="scroll-body">
         {/* ============================================================== */}
         {/* TAB 1: SAVER (HOME) */}
@@ -556,13 +716,27 @@ export default function App() {
               {/* URL Input Box */}
               <div className="url-input-container">
                 <input
+                  ref={inputRef}
                   type="url"
                   className="url-input"
-                  placeholder="Paste TikTok, YouTube, X, or Instagram link..."
+                  placeholder={currentPlaceholder}
                   value={url}
                   onChange={(e) => {
-                    setUrl(e.target.value)
+                    const val = e.target.value
+                    setUrl(val)
                     if (error) setError(null)
+                    try {
+                      if (val.includes('://')) {
+                        const parsed = new URL(val.trim())
+                        const host = parsed.hostname.toLowerCase()
+                        if (host.includes('tiktok.com')) setSelectedPlatform('TikTok')
+                        else if (host.includes('youtube.com') || host.includes('youtu.be')) setSelectedPlatform('YouTube')
+                        else if (host.includes('twitter.com') || host.includes('x.com')) setSelectedPlatform('X')
+                        else if (host.includes('instagram.com')) setSelectedPlatform('Instagram')
+                      }
+                    } catch {
+                      // non-critical
+                    }
                   }}
                   onKeyDown={(e) => e.key === 'Enter' && handleInspectUrl()}
                 />
@@ -616,22 +790,22 @@ export default function App() {
                 )}
               </button>
 
-              {/* Sample Chips (TikTok, YouTube, X, Instagram only) */}
-              <div className="samples-row">
-                {SAMPLES.map((s) => (
-                  <button
-                    key={s.name}
-                    className="sample-pill-btn"
-                    onClick={() => {
-                      triggerHaptic('light')
-                      setUrl(s.url)
-                      handleInspectUrl(s.url)
-                    }}
-                  >
-                    <span>{s.icon}</span>
-                    <span>{s.name}</span>
-                  </button>
-                ))}
+              {/* Platform Selector Chips (Does NOT inject hardcoded dummy URLs) */}
+              <div className="platform-select-section">
+                <span className="platform-select-label">Select platform (optional):</span>
+                <div className="samples-row">
+                  {PLATFORMS.map((p) => (
+                    <button
+                      key={p.id}
+                      className={`sample-pill-btn ${selectedPlatform === p.id ? 'active' : ''}`}
+                      onClick={() => handlePlatformClick(p.id)}
+                      title={`Select ${p.name}`}
+                    >
+                      <span>{p.icon}</span>
+                      <span>{p.name}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -643,6 +817,7 @@ export default function App() {
                 <button
                   className="error-card-close"
                   onClick={() => setError(null)}
+                  aria-label="Dismiss error"
                 >
                   <X size={14} />
                 </button>
@@ -1093,7 +1268,7 @@ export default function App() {
         )}
 
         {/* ============================================================== */}
-        {/* TAB 3: APPS (TikTok, YouTube, X, Instagram only) */}
+        {/* TAB 3: APPS (TikTok, YouTube, X, Instagram) */}
         {/* ============================================================== */}
         {activeNav === 'apps' && (
           <>
@@ -1106,9 +1281,9 @@ export default function App() {
                 className="app-card-item"
                 onClick={() => {
                   triggerHaptic('light')
-                  setUrl('https://vt.tiktok.com/ZSb28AUs8/')
+                  setSelectedPlatform('TikTok')
                   setActiveNav('saver')
-                  handleInspectUrl('https://vt.tiktok.com/ZSb28AUs8/')
+                  inputRef.current?.focus()
                 }}
               >
                 <div style={{ fontSize: '1.6rem' }}>🎵</div>
@@ -1122,9 +1297,9 @@ export default function App() {
                 className="app-card-item"
                 onClick={() => {
                   triggerHaptic('light')
-                  setUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ')
+                  setSelectedPlatform('YouTube')
                   setActiveNav('saver')
-                  handleInspectUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ')
+                  inputRef.current?.focus()
                 }}
               >
                 <div style={{ fontSize: '1.6rem' }}>▶️</div>
@@ -1138,9 +1313,9 @@ export default function App() {
                 className="app-card-item"
                 onClick={() => {
                   triggerHaptic('light')
-                  setUrl('https://x.com/LisPower1/status/1001551623938805763')
+                  setSelectedPlatform('X')
                   setActiveNav('saver')
-                  handleInspectUrl('https://x.com/LisPower1/status/1001551623938805763')
+                  inputRef.current?.focus()
                 }}
               >
                 <div style={{ fontSize: '1.6rem' }}>✖️</div>
@@ -1154,7 +1329,9 @@ export default function App() {
                 className="app-card-item"
                 onClick={() => {
                   triggerHaptic('light')
+                  setSelectedPlatform('Instagram')
                   setActiveNav('saver')
+                  inputRef.current?.focus()
                 }}
               >
                 <div style={{ fontSize: '1.6rem' }}>📷</div>
@@ -1168,7 +1345,7 @@ export default function App() {
         )}
 
         {/* ============================================================== */}
-        {/* TAB 4: SETTINGS (Discards technical diagnostics) */}
+        {/* TAB 4: SETTINGS (About & Credits) */}
         {/* ============================================================== */}
         {activeNav === 'settings' && (
           <>
@@ -1224,7 +1401,7 @@ export default function App() {
         )}
       </main>
 
-      {/* Floating Bottom Nav Dock */}
+      {/* STICKY BOTTOM NAV DOCK (No curved border, stays pinned at bottom regardless of scroll) */}
       <nav className="bottom-nav-dock">
         <button
           className={`nav-tab-item ${activeNav === 'saver' ? 'active' : ''}`}

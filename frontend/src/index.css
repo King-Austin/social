@@ -56,6 +56,7 @@
 
 body {
   min-height: 100vh;
+  min-height: 100dvh;
   background-color: var(--bg-desktop);
   color: var(--text-primary);
   font-family: var(--font-body);
@@ -67,20 +68,23 @@ body {
 
 #root {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
-/* Centered iPhone-Style Viewport (Stands out crisp on desktop) */
+/* Centered Mobile Viewport (Stands out on desktop) */
 .app-shell {
   width: 100%;
   max-width: 440px;
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
   background: var(--bg-app);
   position: relative;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 @media (min-width: 640px) {
@@ -90,20 +94,21 @@ body {
     max-height: 900px;
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-viewport);
-    overflow: hidden;
   }
 }
 
-/* Scrollable Inner Body */
+/* Scrollable Inner Body (Scrolls smoothly between fixed header and sticky footer) */
 .scroll-body {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 14px 18px calc(88px + env(safe-area-inset-bottom, 14px));
+  overscroll-behavior-y: contain;
+  padding: 14px 18px 24px;
   display: flex;
   flex-direction: column;
   gap: 1rem;
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 .scroll-body::-webkit-scrollbar {
@@ -112,38 +117,45 @@ body {
 
 /* Top App Header: Clean, Minimal, No Clutter */
 .app-header {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: env(safe-area-inset-top, 14px) 18px 12px;
+  padding: env(safe-area-inset-top, 14px) 16px 12px;
   background: var(--bg-app);
   border-bottom: 1px solid var(--border-subtle);
-  position: sticky;
-  top: 0;
+  position: relative;
   z-index: 20;
 }
 
 .brand-section {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
-.brand-icon-box {
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  background: var(--accent-orange);
-  color: #fff;
+/* 3-Lines Hamburger Menu Button */
+.btn-menu-toggle {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(234, 88, 12, 0.3);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.btn-menu-toggle:hover {
+  background: var(--bg-subtle);
 }
 
 .brand-text-name {
   font-family: var(--font-heading);
-  font-size: 1.3rem;
+  font-size: 1.35rem;
   font-weight: 800;
   letter-spacing: -0.03em;
   color: var(--text-primary);
@@ -167,11 +179,11 @@ body {
   font-family: var(--font-heading);
   font-size: 0.75rem;
   font-weight: 700;
-  padding: 4px 10px;
+  padding: 5px 11px;
   border-radius: var(--radius-full);
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   text-decoration: none;
   transition: all var(--transition-fast);
 }
@@ -200,6 +212,138 @@ body {
   box-shadow: 0 0 6px rgba(22, 163, 74, 0.6);
 }
 
+/* Sidebar Drawer Overlay & Panel */
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 100;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.sidebar-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 290px;
+  max-width: 82vw;
+  background: #ffffff;
+  z-index: 101;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 6px 0 30px rgba(15, 23, 42, 0.15);
+  animation: slideInLeft 0.22s ease-out;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.sidebar-brand {
+  font-family: var(--font-heading);
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.sidebar-brand span {
+  color: var(--accent-orange);
+}
+
+.sidebar-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.sidebar-close-btn:hover {
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+}
+
+.sidebar-nav-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sidebar-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: all var(--transition-fast);
+}
+
+.sidebar-nav-item:hover {
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+}
+
+.sidebar-nav-item.active {
+  background: var(--accent-orange-light);
+  color: var(--accent-orange);
+  font-weight: 700;
+}
+
+.sidebar-footer {
+  padding: 18px;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sidebar-apk-btn {
+  background: var(--accent-orange);
+  color: #fff;
+  border: none;
+  font-family: var(--font-heading);
+  font-size: 0.88rem;
+  font-weight: 700;
+  padding: 11px 16px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.25);
+}
+
+.sidebar-credits-text {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.4;
+}
+
 /* Minimalist Hero */
 .hero-box {
   padding: 4px 0 0;
@@ -207,11 +351,11 @@ body {
 
 .hero-box h1 {
   font-family: var(--font-heading);
-  font-size: 1.6rem;
+  font-size: 1.55rem;
   font-weight: 800;
   letter-spacing: -0.03em;
   color: var(--text-primary);
-  line-height: 1.15;
+  line-height: 1.2;
 }
 
 .hero-box h1 span {
@@ -334,7 +478,19 @@ body {
   cursor: not-allowed;
 }
 
-/* Sample Platform Chips: Clean Row with Icons */
+/* Platform Select Chips */
+.platform-select-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.platform-select-label {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
 .samples-row {
   display: flex;
   align-items: center;
@@ -348,7 +504,7 @@ body {
   color: var(--text-secondary);
   font-size: 0.78rem;
   font-weight: 600;
-  padding: 5px 11px;
+  padding: 6px 12px;
   border-radius: var(--radius-full);
   display: flex;
   align-items: center;
@@ -361,6 +517,14 @@ body {
   background: var(--accent-orange-light);
   border-color: var(--accent-orange-border);
   color: var(--accent-orange);
+}
+
+.sample-pill-btn.active {
+  background: var(--accent-orange-light);
+  border-color: var(--accent-orange);
+  color: var(--accent-orange);
+  font-weight: 700;
+  box-shadow: 0 0 0 1px var(--accent-orange);
 }
 
 /* Graceful Compact Error Card */
@@ -784,24 +948,26 @@ body {
   color: #fff;
 }
 
-/* Floating Bottom Nav Dock (Cupertino Style) */
+/* STICKY BOTTOM NAV DOCK (No curved border, stays pinned at bottom regardless of scroll) */
 .bottom-nav-dock {
-  position: absolute;
-  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-  left: 16px;
-  right: 16px;
-  height: 60px;
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 30px;
-  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  flex-shrink: 0;
+  width: 100%;
+  min-height: 58px;
+  height: calc(58px + env(safe-area-inset-bottom, 0px));
+  background: #ffffff;
+  border-top: 1px solid var(--border-subtle);
+  border-radius: 0 !important; /* No curved border */
+  box-shadow: 0 -2px 10px rgba(15, 23, 42, 0.05);
   display: flex;
   align-items: center;
   justify-content: space-around;
-  padding: 0 6px;
-  z-index: 50;
+  padding: 0 4px;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  z-index: 40;
 }
 
 .nav-tab-item {
@@ -815,7 +981,7 @@ body {
   border: none;
   color: var(--text-muted);
   cursor: pointer;
-  padding: 5px 0;
+  padding: 6px 0;
   transition: color var(--transition-fast);
 }
 
@@ -899,7 +1065,7 @@ body {
   border-bottom: none;
 }
 
-/* Spinner */
+/* Animations */
 .spin-indicator {
   animation: spin 0.8s linear infinite;
 }
@@ -913,10 +1079,20 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 /* Exit Toast */
 .exit-notice-toast {
   position: absolute;
-  bottom: 80px;
+  bottom: 70px;
   left: 50%;
   transform: translateX(-50%);
   background: var(--text-primary);

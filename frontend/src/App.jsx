@@ -687,9 +687,24 @@ export default function App() {
                 <span>Download Android APK</span>
               </a>
               <div className="sidebar-credits-text">
-                Built with ❤️ by <strong>King-Austin</strong>
+                Built with ❤️ by{' '}
+                <a
+                  href="https://nworahebuka.com.ng/"
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ color: 'var(--accent-orange)', fontWeight: 700, textDecoration: 'none' }}
+                >
+                  King-Austin
+                </a>
                 <br />
-                social.nworahebuka.com.ng
+                <a
+                  href="https://social.nworahebuka.com.ng/"
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ color: 'inherit', textDecoration: 'none' }}
+                >
+                  social.nworahebuka.com.ng
+                </a>
               </div>
             </div>
           </aside>
@@ -1131,11 +1146,19 @@ export default function App() {
             {/* Footer */}
             <footer className="app-credits-footer">
               <div>
-                SocialDL • Built by <strong>King-Austin</strong>
+                SocialDL • Built by{' '}
+                <a
+                  href="https://nworahebuka.com.ng/"
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ color: 'inherit', fontWeight: 700, textDecoration: 'underline' }}
+                >
+                  King-Austin
+                </a>
               </div>
               <div>
                 <a
-                  href="https://social.nworahebuka.com.ng"
+                  href="https://social.nworahebuka.com.ng/"
                   target="_blank"
                   rel="noreferrer"
                 >
@@ -1406,12 +1429,19 @@ export default function App() {
               </div>
               <div className="settings-item-row">
                 <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>Built by</span>
-                <strong style={{ color: 'var(--accent-orange)' }}>King-Austin</strong>
+                <a
+                  href="https://nworahebuka.com.ng/"
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ color: 'var(--accent-orange)', fontWeight: 700, fontSize: '0.88rem', textDecoration: 'none' }}
+                >
+                  King-Austin
+                </a>
               </div>
               <div className="settings-item-row">
                 <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>Website</span>
                 <a
-                  href="https://social.nworahebuka.com.ng"
+                  href="https://social.nworahebuka.com.ng/"
                   target="_blank"
                   rel="noreferrer"
                   style={{ color: 'var(--accent-orange)', fontWeight: 600, fontSize: '0.88rem' }}

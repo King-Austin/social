@@ -2,6 +2,7 @@ import os
 import shutil
 import asyncio
 import json
+from pathlib import Path
 from typing import Optional
 from fastapi import APIRouter, HTTPException, BackgroundTasks, Query
 from fastapi.responses import FileResponse, StreamingResponse
@@ -224,3 +225,22 @@ def delete_cookies():
     if COOKIES_FILE.exists():
         COOKIES_FILE.unlink(missing_ok=True)
     return {"success": True, "message": "Cookies deleted."}
+
+
+VERSION_MANIFEST_PATH = Path("/home/ubuntu/social/frontend/public/updates/version.json")
+
+@router.get("/app/version")
+def get_app_version():
+    """Returns the current web bundle and APK version for Over-The-Air (OTA) updates."""
+    if VERSION_MANIFEST_PATH.exists():
+        try:
+            return json.loads(VERSION_MANIFEST_PATH.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    return {
+        "version": "1.0.0",
+        "bundle_url": "https://social.nworahebuka.com.ng/updates/dist-v1.0.0.zip",
+        "apk_url": "https://social.nworahebuka.com.ng/SocialDL.apk",
+        "changelog": "Initial release with Over-The-Air (OTA) updates support."
+    }
+

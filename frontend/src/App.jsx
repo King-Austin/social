@@ -26,6 +26,7 @@ import { App as CapApp } from '@capacitor/app'
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics'
 import { Filesystem, Directory } from '@capacitor/filesystem'
 import { Share } from '@capacitor/share'
+import { CapacitorUpdater } from '@capgo/capacitor-updater'
 
 // Tactile Haptic Feedback
 export const triggerHaptic = async (type = 'light') => {
@@ -95,6 +96,11 @@ export default function App() {
   // Only display APK download prompts if NOT running inside the installed native mobile app,
   // NOT installed as a standalone PWA, and NOT on an iOS device (where APK cannot run).
   const showApkPrompts = !isNative && !isStandalone && !isIOS
+
+  // Over-The-Air (OTA) Update State
+  const CURRENT_APP_VERSION = '1.0.0'
+  const [checkingOta, setCheckingOta] = useState(false)
+  const [otaStatusMessage, setOtaStatusMessage] = useState(null)
 
   // History - strictly real user downloads, no mock data
   const [history, setHistory] = useState(() => {
@@ -249,6 +255,88 @@ export default function App() {
     const timer = setInterval(checkHealth, 30000)
     return () => clearInterval(timer)
   }, [])
+
+  // Over-The-Air (OTA) Updates Lifecycle
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return
+
+    // 1. Notify native updater that app rendered successfully (protects against crash rollbacks)
+    try {
+      CapacitorUpdater.notifyAppReady()
+    } catch (err) {
+      console.warn('Updater notify notice:', err)
+    }
+
+    // 2. Silent background OTA check
+    const checkOtaUpdates = async () => {
+      try {
+        const baseUrl = getApiUrl()
+        const res = await fetch(`${baseUrl}/api/app/version`)
+        if (!res.ok) return
+        const raw = await res.text()
+        const data = raw ? JSON.parse(raw) : {}
+
+        if (data.version && data.bundle_url) {
+          const current = await CapacitorUpdater.current()
+          const activeVersion = current?.bundle?.version || CURRENT_APP_VERSION
+
+          if (data.version !== activeVersion) {
+            console.log(`[OTA] Downloading update v${data.version}...`)
+            const downloaded = await CapacitorUpdater.download({
+              url: data.bundle_url,
+              version: data.version
+            })
+            // Stage update to be applied seamlessly on next launch
+            await CapacitorUpdater.set(downloaded)
+            console.log(`[OTA] Update v${data.version} downloaded and staged for next launch`)
+          }
+        }
+      } catch (otaErr) {
+        console.warn('OTA background check notice:', otaErr)
+      }
+    }
+
+    const timer = setTimeout(checkOtaUpdates, 3500)
+    return () => clearTimeout(timer)
+  }, [])
+
+  // Manual OTA Check Handler
+  const handleManualOtaCheck = async () => {
+    if (!Capacitor.isNativePlatform()) return
+    setCheckingOta(true)
+    setOtaStatusMessage('Checking for updates...')
+    await triggerHaptic('light')
+    try {
+      const baseUrl = getApiUrl()
+      const res = await fetch(`${baseUrl}/api/app/version`)
+      if (!res.ok) throw new Error('Could not reach update server.')
+      const raw = await res.text()
+      const data = raw ? JSON.parse(raw) : {}
+
+      const current = await CapacitorUpdater.current()
+      const currentVer = current?.bundle?.version || CURRENT_APP_VERSION
+
+      if (data.version && data.version !== currentVer && data.bundle_url) {
+        setOtaStatusMessage(`Downloading v${data.version}...`)
+        const downloaded = await CapacitorUpdater.download({
+          url: data.bundle_url,
+          version: data.version
+        })
+        await CapacitorUpdater.set(downloaded)
+        setOtaStatusMessage(`v${data.version} ready! Restart to apply.`)
+        await triggerHaptic('success')
+      } else {
+        setOtaStatusMessage('You are on the latest version!')
+        await triggerHaptic('success')
+      }
+    } catch (err) {
+      console.warn('Manual OTA check error:', err)
+      setOtaStatusMessage('Up to date')
+    } finally {
+      setCheckingOta(false)
+      setTimeout(() => setOtaStatusMessage(null), 4000)
+    }
+  }
 
   // Native Mobile Download & Share
   const handleNativeDownloadOrShare = async (downloadUrl, filename, title) => {
@@ -1500,12 +1588,53 @@ export default function App() {
                 </span>
               </div>
               <div className="settings-item-row">
+                <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>App Version</span>
+                <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+                  v{CURRENT_APP_VERSION}
+                </span>
+              </div>
+              {isNative && (
+                <div className="settings-item-row">
+                  <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>Live Updates</span>
+                  <span style={{ color: 'var(--success)', fontWeight: 600, fontSize: '0.85rem' }}>
+                    Active ⚡
+                  </span>
+                </div>
+              )}
+              <div className="settings-item-row">
                 <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>Engine Status</span>
                 <span style={{ color: 'var(--success)', fontWeight: 600, fontSize: '0.85rem' }}>
                   Online 🟢
                 </span>
               </div>
             </div>
+
+            {/* In-App OTA Manual Check Button */}
+            {isNative && (
+              <button
+                onClick={handleManualOtaCheck}
+                disabled={checkingOta}
+                style={{
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border-card)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '11px 16px',
+                  color: 'var(--text-primary)',
+                  fontFamily: 'var(--font-heading)',
+                  fontSize: '0.88rem',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  cursor: 'pointer',
+                  boxShadow: 'var(--shadow-sm)'
+                }}
+              >
+                <RefreshCw size={15} className={checkingOta ? 'spin-indicator' : ''} />
+                <span>{checkingOta ? 'Checking server...' : otaStatusMessage || 'Check for Updates'}</span>
+              </button>
+            )}
 
             {/* Android Mobile App (APK) - Hidden inside native app */}
             {showApkPrompts ? (

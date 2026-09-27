@@ -4,6 +4,14 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
+      "source": "/api/(.*)",
+      "destination": "http://34.244.99.37:8055/api/$1"
+    },
+    {
+      "source": "/downloads/(.*)",
+      "destination": "http://34.244.99.37:8055/downloads/$1"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

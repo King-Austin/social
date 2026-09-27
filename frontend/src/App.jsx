@@ -228,6 +228,10 @@ export default function App() {
     if (import.meta.env.VITE_API_URL) {
       return import.meta.env.VITE_API_URL.replace(/\/+$/, '')
     }
+    // In native Android APK, connect directly to VPS backend IP
+    if (Capacitor.isNativePlatform()) {
+      return 'http://34.244.99.37:8055'
+    }
     return ''
   }
 
@@ -341,8 +345,15 @@ export default function App() {
     if (str.includes('bot') || str.includes('Sign in') || str.includes('confirm you’re not a robot')) {
       return 'This video requires account sign-in or is private. Try another public video.'
     }
-    if (str.includes('Failed to fetch') || str.includes('NetworkError')) {
-      return 'Server is busy or unreachable. Please try again in a few moments.'
+    if (
+      str.includes('Failed to fetch') ||
+      str.includes('NetworkError') ||
+      str.includes('Unexpected end of JSON') ||
+      str.includes('405') ||
+      str.includes('502') ||
+      str.includes('504')
+    ) {
+      return 'Backend service is connecting. Please try again in a few moments.'
     }
     return str.length > 90 ? `${str.slice(0, 85)}...` : str
   }
@@ -427,9 +438,16 @@ export default function App() {
         body: JSON.stringify({ url: finalUrl })
       })
 
-      const data = await res.json()
+      const rawText = await res.text()
+      let data = {}
+      try {
+        data = rawText ? JSON.parse(rawText) : {}
+      } catch (jsonErr) {
+        console.warn('Non-JSON response:', rawText, jsonErr)
+      }
+
       if (!res.ok) {
-        throw new Error(data.detail || 'Could not find video.')
+        throw new Error(data.detail || `Server returned status ${res.status}.`)
       }
 
       setMediaInfo(data.data)
@@ -466,9 +484,16 @@ export default function App() {
         })
       })
 
-      const data = await res.json()
+      const rawText = await res.text()
+      let data = {}
+      try {
+        data = rawText ? JSON.parse(rawText) : {}
+      } catch (jsonErr) {
+        console.warn('Non-JSON response:', rawText, jsonErr)
+      }
+
       if (!res.ok) {
-        throw new Error(data.detail || 'Download request failed.')
+        throw new Error(data.detail || `Download request failed (${res.status}).`)
       }
 
       const taskId = data.task_id

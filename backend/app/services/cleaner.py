@@ -29,6 +29,21 @@ def cleanup_old_files():
 
         if removed_count > 0:
             logger.info(f"Cleaned up {removed_count} old file(s), freed {freed_bytes / (1024 * 1024):.2f} MB")
+
+        # Also prune expired in-memory task metadata to keep RAM usage permanently flat
+        try:
+            from app.services.ytdlp_service import TASKS, TASK_LISTENERS
+            expired_task_ids = [
+                tid for tid, tdata in list(TASKS.items())
+                if now - tdata.get("updated_at", tdata.get("created_at", now)) > max_age_seconds
+            ]
+            for tid in expired_task_ids:
+                TASKS.pop(tid, None)
+                TASK_LISTENERS.pop(tid, None)
+            if expired_task_ids:
+                logger.info(f"Pruned {len(expired_task_ids)} expired in-memory task record(s)")
+        except Exception as task_err:
+            logger.warning(f"Notice pruning task memory: {task_err}")
     except Exception as e:
         logger.error(f"Error during cleanup cycle: {e}")
 

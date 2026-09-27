@@ -17,7 +17,8 @@ import {
   ClipboardPaste,
   Check,
   Smartphone,
-  ExternalLink
+  ExternalLink,
+  Clock
 } from 'lucide-react'
 
 import { Capacitor } from '@capacitor/core'
@@ -58,32 +59,6 @@ const PLATFORMS = [
   { id: 'Facebook', name: 'Facebook', icon: '👥', placeholder: 'Paste Facebook video link here...' }
 ]
 
-// Initial seed history
-const INITIAL_DEMO_HISTORY = [
-  {
-    id: 'demo_1',
-    title: 'Cinematic Travel Reel - Kyoto Hills',
-    thumbnail: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=300&q=80',
-    platform: 'Instagram',
-    duration: '0:32',
-    filesize: '14.5 MB',
-    ext: 'mp4',
-    download_url: '',
-    timestamp: Date.now() - 3600000
-  },
-  {
-    id: 'demo_2',
-    title: 'Top 10 Tech Discoveries 2026',
-    thumbnail: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=300&q=80',
-    platform: 'YouTube',
-    duration: '2:15',
-    filesize: '19.8 MB',
-    ext: 'mp4',
-    download_url: '',
-    timestamp: Date.now() - 7200000
-  }
-]
-
 const APK_URL = 'https://social.nworahebuka.com.ng/SocialDL.apk'
 
 export default function App() {
@@ -108,15 +83,21 @@ export default function App() {
   const [isOnline, setIsOnline] = useState(true)
   const [downloadingToDevice, setDownloadingToDevice] = useState(false)
 
-  // History
+  // History - strictly real user downloads, no mock data
   const [history, setHistory] = useState(() => {
     try {
       const saved = localStorage.getItem('socialdl_history')
-      if (saved) return JSON.parse(saved)
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed)) {
+          // Filter out any remnant demo items from earlier prototypes
+          return parsed.filter((item) => item && item.id && !String(item.id).startsWith('demo_'))
+        }
+      }
     } catch (e) {
       console.warn('History read notice:', e)
     }
-    return INITIAL_DEMO_HISTORY
+    return []
   })
   const [libraryFilter, setLibraryFilter] = useState('all')
 
@@ -151,6 +132,21 @@ export default function App() {
       setHistory([])
       localStorage.removeItem('socialdl_history')
     }
+  }
+
+  // Delete individual item from history
+  const handleDeleteHistoryItem = (e, id) => {
+    if (e) e.stopPropagation()
+    triggerHaptic('light')
+    setHistory((prev) => {
+      const updated = prev.filter((item) => item.id !== id)
+      try {
+        localStorage.setItem('socialdl_history', JSON.stringify(updated))
+      } catch (err) {
+        console.warn('History write error', err)
+      }
+      return updated
+    })
   }
 
   // Mobile Hardware Back Button
@@ -1049,66 +1045,88 @@ export default function App() {
               )}
             </div>
 
-            <div className="recent-items-list">
-              {history.slice(0, 2).map((item) => (
-                <div key={item.id} className="recent-item-card">
-                  <div className="recent-thumb">
-                    <img
-                      src={
-                        item.thumbnail ||
-                        'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=300&q=80'
-                      }
-                      alt={item.title}
-                    />
-                    <div className="recent-play-badge">
-                      <Play size={12} fill="currentColor" />
-                    </div>
+            {history.length === 0 ? (
+              <div className="recent-empty-card">
+                <Clock size={20} className="recent-empty-icon" />
+                <div className="recent-empty-texts">
+                  <div className="recent-empty-title">No recent downloads yet</div>
+                  <div className="recent-empty-subtitle">
+                    Paste a link above and tap download to save your first video
                   </div>
-
-                  <div className="recent-text-details">
-                    <div className="recent-title-text">{item.title}</div>
-                    <div className="recent-meta-text">
-                      <span
-                        style={{
-                          fontWeight: 700,
-                          color: 'var(--accent-orange)',
-                          textTransform: 'uppercase'
-                        }}
-                      >
-                        {item.ext}
-                      </span>
-                      <span>• {item.filesize || 'Saved'}</span>
-                      {item.duration && <span>• {item.duration}</span>}
-                    </div>
-                  </div>
-
-                  {item.download_url ? (
-                    <button
-                      className="recent-circle-btn"
-                      onClick={() =>
-                        Capacitor.isNativePlatform()
-                          ? handleNativeDownloadOrShare(
-                              item.download_url,
-                              item.filename,
-                              item.title
-                            )
-                          : window.open(`${getApiUrl()}${item.download_url}`)
-                      }
-                      title="Save / Share"
-                    >
-                      <Share2 size={15} />
-                    </button>
-                  ) : (
-                    <div
-                      className="recent-circle-btn"
-                      style={{ cursor: 'default', color: 'var(--success)' }}
-                    >
-                      <Check size={15} />
-                    </div>
-                  )}
                 </div>
-              ))}
-            </div>
+              </div>
+            ) : (
+              <div className="recent-items-list">
+                {history.slice(0, 2).map((item) => (
+                  <div key={item.id} className="recent-item-card">
+                    <div className="recent-thumb">
+                      <img
+                        src={
+                          item.thumbnail ||
+                          'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=300&q=80'
+                        }
+                        alt={item.title}
+                      />
+                      <div className="recent-play-badge">
+                        <Play size={12} fill="currentColor" />
+                      </div>
+                    </div>
+
+                    <div className="recent-text-details">
+                      <div className="recent-title-text">{item.title}</div>
+                      <div className="recent-meta-text">
+                        <span
+                          style={{
+                            fontWeight: 700,
+                            color: 'var(--accent-orange)',
+                            textTransform: 'uppercase'
+                          }}
+                        >
+                          {item.ext}
+                        </span>
+                        <span>• {item.filesize || 'Saved'}</span>
+                        {item.duration && <span>• {item.duration}</span>}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      {item.download_url ? (
+                        <button
+                          className="recent-circle-btn"
+                          onClick={() =>
+                            Capacitor.isNativePlatform()
+                              ? handleNativeDownloadOrShare(
+                                  item.download_url,
+                                  item.filename,
+                                  item.title
+                                )
+                              : window.open(`${getApiUrl()}${item.download_url}`)
+                          }
+                          title="Save / Share"
+                        >
+                          <Share2 size={15} />
+                        </button>
+                      ) : (
+                        <div
+                          className="recent-circle-btn"
+                          style={{ cursor: 'default', color: 'var(--success)' }}
+                        >
+                          <Check size={15} />
+                        </div>
+                      )}
+
+                      <button
+                        className="recent-circle-btn delete-btn"
+                        onClick={(e) => handleDeleteHistoryItem(e, item.id)}
+                        title="Remove from history"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Footer */}
             <footer className="app-credits-footer">
@@ -1242,6 +1260,13 @@ export default function App() {
                           <Share2 size={15} />
                         </button>
                       )}
+                      <button
+                        className="recent-circle-btn delete-btn"
+                        onClick={(e) => handleDeleteHistoryItem(e, item.id)}
+                        title="Delete from history"
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </div>
                 ))}

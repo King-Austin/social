@@ -994,6 +994,47 @@ body {
   color: #fff;
 }
 
+.recent-circle-btn.delete-btn:hover {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--error);
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.recent-empty-card {
+  background: var(--bg-card);
+  border: 1px dashed var(--border-card);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.recent-empty-icon {
+  color: var(--accent-orange);
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+
+.recent-empty-texts {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.recent-empty-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.recent-empty-subtitle {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
 /* STICKY BOTTOM NAV DOCK (No curved border, stays pinned at bottom regardless of scroll) */
 .bottom-nav-dock {
   position: sticky;

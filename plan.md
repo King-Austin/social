@@ -121,10 +121,33 @@
 
 ---
 
-### Phase 10: Verification & Launch Checklist
+### Phase 10: Sticky Bottom Dock, Hamburger Sidebar Drawer & URL Validation (Completed ✅)
+- [x] **Sticky Bottom Navigation Panel**:
+  - Made `.bottom-nav-dock` flush and sticky to the base of the viewport (`position: sticky; bottom: 0; min-height: 58px`) regardless of scroll direction.
+  - Removed all curved borders (`border-radius: 0 !important`) for a crisp, seamless dock appearance.
+  - Tested across varying mobile viewports (iPhone SE 375x667, compact Android 360px, modern iPhones 390px+).
+- [x] **Header Clean Up & Hamburger Sidebar Drawer**:
+  - Removed sparkle icon from header; preserved clean title `SocialDL` with APK badge and engine status indicator.
+  - Added 3-line hamburger menu button (`Menu` icon) opening a slide-out navigation drawer.
+  - Sidebar provides unified access to all tabs (`Saver`, `Downloads Library`, `Supported Apps`, `About & Credits`), APK download button, and author credits (**Built with ❤️ by King-Austin** | `social.nworahebuka.com.ng`).
+  - Integrated with hardware back button listener so pressing back on Android closes the sidebar drawer first.
+- [x] **Platform Button Logic (No Hardcoded URLs / No Auto-Download)**:
+  - Clicking platform chips (TikTok, YouTube, X, Instagram) now selects/highlights the platform and sets contextual placeholder/focus without injecting dummy URLs or triggering automatic API requests.
+  - Waits for user to paste their own video URL.
+  - Automatically syncs highlighted platform pill when user pastes or types a matching URL.
+- [x] **Strict Client-Side URL Validation**:
+  - Validates that user input starts with `http://` or `https://` with a valid web host.
+  - Validates that link belongs to supported video platforms (TikTok, YouTube, Twitter/X, Instagram) before querying the backend.
+  - Provides clear, accessible error feedback on invalid or malformed links.
+- [x] Production build verified (`npm run build` completed cleanly in 860ms).
+
+---
+
+### Phase 11: Verification & Launch Checklist
 - [ ] Vercel web app loads with 0 Mixed Content errors in browser DevTools console.
 - [ ] YouTube, TikTok, and Twitter (X) video links extract and download properly on Vercel.
 - [ ] Capacitor Android APK builds and installs on phone.
 - [ ] Mobile app prompts native download/save dialog when video is ready.
 - [ ] EC2 auto-cleaner continues purging files older than 45 minutes to keep VPS disk space healthy.
+
 

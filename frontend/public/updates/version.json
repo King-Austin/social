@@ -1,6 +1,6 @@
 {
-  "version": "1.0.0",
-  "bundle_url": "https://social.nworahebuka.com.ng/updates/dist-v1.0.0.zip",
+  "version": "1.0.1",
+  "bundle_url": "https://social.nworahebuka.com.ng/updates/dist-v1.0.1.zip",
   "apk_url": "https://social.nworahebuka.com.ng/SocialDL.apk",
-  "changelog": "Enable HTTPS direct connection for native app and AndroidManifest cleartext traffic"
+  "changelog": "Switched mobile app endpoint to HTTPS domain"
 }

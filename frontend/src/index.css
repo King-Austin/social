@@ -461,16 +461,19 @@ body {
   justify-content: center;
   gap: 8px;
   box-shadow: 0 4px 14px -2px rgba(234, 88, 12, 0.35);
-  transition: all var(--transition-fast);
+  transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: hidden;
 }
 
 .btn-download-primary:hover:not(:disabled) {
   background: var(--accent-orange-hover);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px -2px rgba(234, 88, 12, 0.45);
 }
 
 .btn-download-primary:active:not(:disabled) {
-  transform: translateY(1px);
+  transform: scale(0.97);
 }
 
 .btn-download-primary:disabled {
@@ -510,13 +513,19 @@ body {
   align-items: center;
   gap: 5px;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .sample-pill-btn:hover {
   background: var(--accent-orange-light);
   border-color: var(--accent-orange-border);
   color: var(--accent-orange);
+  transform: translateY(-2px);
+  box-shadow: 0 3px 8px rgba(234, 88, 12, 0.15);
+}
+
+.sample-pill-btn:active {
+  transform: scale(0.94);
 }
 
 .sample-pill-btn.active {
@@ -524,7 +533,9 @@ body {
   border-color: var(--accent-orange);
   color: var(--accent-orange);
   font-weight: 700;
-  box-shadow: 0 0 0 1px var(--accent-orange);
+  box-shadow: 0 0 0 1.5px var(--accent-orange), 0 3px 10px rgba(234, 88, 12, 0.2);
+  transform: scale(1.05);
+  animation: pillPop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* Graceful Compact Error Card */
@@ -647,6 +658,7 @@ body {
   background: var(--bg-subtle);
   border-radius: var(--radius-full);
   overflow: hidden;
+  position: relative;
 }
 
 .job-progress-bar {
@@ -654,6 +666,24 @@ body {
   background: var(--accent-orange);
   border-radius: var(--radius-full);
   transition: width 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.job-progress-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.45) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: shimmer 1.5s infinite;
 }
 
 .btn-save-ready {
@@ -672,10 +702,17 @@ body {
   gap: 6px;
   text-decoration: none;
   cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .btn-save-ready:hover {
   background: #15803d;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+}
+
+.btn-save-ready:active {
+  transform: scale(0.97);
 }
 
 /* Media Inspect Box */
@@ -688,6 +725,7 @@ body {
   flex-direction: column;
   gap: 12px;
   box-shadow: var(--shadow-card);
+  animation: cardPopIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .inspect-header-grid {
@@ -790,6 +828,14 @@ body {
   background: var(--bg-subtle);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.format-item-row:hover {
+  border-color: var(--accent-orange-border);
+  background: #ffffff;
+  transform: translateX(3px);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
 }
 
 .format-title-line {
@@ -982,7 +1028,11 @@ body {
   color: var(--text-muted);
   cursor: pointer;
   padding: 6px 0;
-  transition: color var(--transition-fast);
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.nav-tab-item:active {
+  transform: scale(0.9);
 }
 
 .nav-tab-item:hover {
@@ -991,6 +1041,11 @@ body {
 
 .nav-tab-item.active {
   color: var(--accent-orange);
+}
+
+.nav-tab-item.active svg {
+  transform: scale(1.15);
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .nav-tab-label {
@@ -1108,4 +1163,41 @@ body {
   z-index: 100;
   pointer-events: none;
   white-space: nowrap;
+  animation: toastBounce 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Tab Pane Smooth Transition */
+.tab-pane-animate {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  animation: tabFadeSlide 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes pillPop {
+  0% { transform: scale(0.94); }
+  60% { transform: scale(1.08); }
+  100% { transform: scale(1.05); }
+}
+
+@keyframes tabFadeSlide {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toastBounce {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 15px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
 }

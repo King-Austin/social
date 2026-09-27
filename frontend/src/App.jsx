@@ -702,7 +702,7 @@ export default function App() {
         {/* TAB 1: SAVER (HOME) */}
         {/* ============================================================== */}
         {activeNav === 'saver' && (
-          <>
+          <div key="saver" className="tab-pane-animate">
             {/* Minimal Hero */}
             <div className="hero-box">
               <h1>
@@ -1120,14 +1120,14 @@ export default function App() {
                 </a>
               </div>
             </footer>
-          </>
+          </div>
         )}
 
         {/* ============================================================== */}
         {/* TAB 2: LIBRARY */}
         {/* ============================================================== */}
         {activeNav === 'library' && (
-          <>
+          <div key="library" className="tab-pane-animate">
             <div className="hero-box">
               <h1>Downloads</h1>
             </div>
@@ -1264,14 +1264,14 @@ export default function App() {
                 </button>
               </div>
             )}
-          </>
+          </div>
         )}
 
         {/* ============================================================== */}
         {/* TAB 3: APPS (TikTok, YouTube, X, Instagram) */}
         {/* ============================================================== */}
         {activeNav === 'apps' && (
-          <>
+          <div key="apps" className="tab-pane-animate">
             <div className="hero-box">
               <h1>Apps</h1>
             </div>
@@ -1341,14 +1341,14 @@ export default function App() {
                 </div>
               </div>
             </div>
-          </>
+          </div>
         )}
 
         {/* ============================================================== */}
         {/* TAB 4: SETTINGS (About & Credits) */}
         {/* ============================================================== */}
         {activeNav === 'settings' && (
-          <>
+          <div key="settings" className="tab-pane-animate">
             <div className="hero-box">
               <h1>About</h1>
             </div>
@@ -1397,7 +1397,7 @@ export default function App() {
                 Download APK
               </a>
             </div>
-          </>
+          </div>
         )}
       </main>
 

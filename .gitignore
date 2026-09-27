@@ -29,6 +29,10 @@ ios/App/build/
 ios/App/Pods/
 **/ios/App/Pods/
 
+# Distribution APKs
+!SocialDL.apk
+!frontend/public/SocialDL.apk
+
 # ==============================================================================
 # Logs, Runtime & Media Downloads
 # ==============================================================================

@@ -54,7 +54,8 @@ const PLATFORMS = [
   { id: 'TikTok', name: 'TikTok', icon: '🎵', placeholder: 'Paste TikTok link here...' },
   { id: 'YouTube', name: 'YouTube', icon: '▶️', placeholder: 'Paste YouTube link here...' },
   { id: 'X', name: 'X', icon: '✖️', placeholder: 'Paste Twitter / X link here...' },
-  { id: 'Instagram', name: 'Instagram', icon: '📷', placeholder: 'Paste Instagram link here...' }
+  { id: 'Instagram', name: 'Instagram', icon: '📷', placeholder: 'Paste Instagram link here...' },
+  { id: 'Facebook', name: 'Facebook', icon: '👥', placeholder: 'Paste Facebook video link here...' }
 ]
 
 // Initial seed history
@@ -307,10 +308,12 @@ export default function App() {
         host.includes('youtu.be') ||
         host.includes('twitter.com') ||
         host.includes('x.com') ||
-        host.includes('instagram.com')
+        host.includes('instagram.com') ||
+        host.includes('facebook.com') ||
+        host.includes('fb.watch')
 
       if (!isKnown) {
-        return 'Please paste a link from TikTok, YouTube, X, or Instagram.'
+        return 'Please paste a link from TikTok, YouTube, X, Instagram, or Facebook.'
       }
     } catch {
       return 'Please enter a valid video URL.'
@@ -396,6 +399,7 @@ export default function App() {
       else if (host.includes('youtube.com') || host.includes('youtu.be')) setSelectedPlatform('YouTube')
       else if (host.includes('twitter.com') || host.includes('x.com')) setSelectedPlatform('X')
       else if (host.includes('instagram.com')) setSelectedPlatform('Instagram')
+      else if (host.includes('facebook.com') || host.includes('fb.watch')) setSelectedPlatform('Facebook')
     } catch {
       // non-critical
     }
@@ -733,6 +737,7 @@ export default function App() {
                         else if (host.includes('youtube.com') || host.includes('youtu.be')) setSelectedPlatform('YouTube')
                         else if (host.includes('twitter.com') || host.includes('x.com')) setSelectedPlatform('X')
                         else if (host.includes('instagram.com')) setSelectedPlatform('Instagram')
+                        else if (host.includes('facebook.com') || host.includes('fb.watch')) setSelectedPlatform('Facebook')
                       }
                     } catch {
                       // non-critical
@@ -1338,6 +1343,22 @@ export default function App() {
                 <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>Instagram</div>
                 <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                   Reels & Video Posts
+                </div>
+              </div>
+
+              <div
+                className="app-card-item"
+                onClick={() => {
+                  triggerHaptic('light')
+                  setSelectedPlatform('Facebook')
+                  setActiveNav('saver')
+                  inputRef.current?.focus()
+                }}
+              >
+                <div style={{ fontSize: '1.6rem' }}>👥</div>
+                <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>Facebook</div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  Watch, Reels & Videos
                 </div>
               </div>
             </div>

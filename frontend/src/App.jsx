@@ -83,6 +83,19 @@ export default function App() {
   const [isOnline, setIsOnline] = useState(true)
   const [downloadingToDevice, setDownloadingToDevice] = useState(false)
 
+  // Platform & Environment Detection
+  const isNative = Capacitor.isNativePlatform()
+  const isStandalone =
+    typeof window !== 'undefined' &&
+    (window.matchMedia('(display-mode: standalone)').matches ||
+      window.navigator.standalone === true)
+  const isIOS =
+    typeof navigator !== 'undefined' &&
+    /iPhone|iPad|iPod/i.test(navigator.userAgent || '')
+  // Only display APK download prompts if NOT running inside the installed native mobile app,
+  // NOT installed as a standalone PWA, and NOT on an iOS device (where APK cannot run).
+  const showApkPrompts = !isNative && !isStandalone && !isIOS
+
   // History - strictly real user downloads, no mock data
   const [history, setHistory] = useState(() => {
     try {
@@ -589,16 +602,18 @@ export default function App() {
         </div>
 
         <div className="header-actions">
-          <a
-            href={APK_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="btn-apk-header"
-            title="Download Android APK"
-          >
-            <Smartphone size={13} />
-            <span>APK</span>
-          </a>
+          {showApkPrompts && (
+            <a
+              href={APK_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="btn-apk-header"
+              title="Download Android APK"
+            >
+              <Smartphone size={13} />
+              <span>APK</span>
+            </a>
+          )}
           <div className="status-dot-wrap" title="Engine Status">
             <span className={`status-dot ${isOnline ? 'active' : ''}`} />
           </div>
@@ -677,15 +692,17 @@ export default function App() {
             </nav>
 
             <div className="sidebar-footer">
-              <a
-                href={APK_URL}
-                target="_blank"
-                rel="noreferrer"
-                className="sidebar-apk-btn"
-              >
-                <Smartphone size={16} />
-                <span>Download Android APK</span>
-              </a>
+              {showApkPrompts && (
+                <a
+                  href={APK_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="sidebar-apk-btn"
+                >
+                  <Smartphone size={16} />
+                  <span>Download Android APK</span>
+                </a>
+              )}
               <div className="sidebar-credits-text">
                 Built with ❤️ by{' '}
                 <a
@@ -1027,22 +1044,24 @@ export default function App() {
               </div>
             )}
 
-            {/* Android Mobile App Card */}
-            <div className="apk-banner-card">
-              <div className="apk-banner-text">
-                <h3>📱 Android Mobile App</h3>
-                <p>Install SocialDL on your phone for 1-tap saving.</p>
+            {/* Android Mobile App Card (Hidden when running inside the installed app) */}
+            {showApkPrompts && (
+              <div className="apk-banner-card">
+                <div className="apk-banner-text">
+                  <h3>📱 Android Mobile App</h3>
+                  <p>Install SocialDL on your phone for 1-tap saving.</p>
+                </div>
+                <a
+                  href={APK_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn-apk-install"
+                >
+                  <Download size={14} />
+                  Download APK
+                </a>
               </div>
-              <a
-                href={APK_URL}
-                target="_blank"
-                rel="noreferrer"
-                className="btn-apk-install"
-              >
-                <Download size={14} />
-                Download APK
-              </a>
-            </div>
+            )}
 
             {/* Recent Downloads Section */}
             <div className="section-title-row">
@@ -1450,6 +1469,12 @@ export default function App() {
                 </a>
               </div>
               <div className="settings-item-row">
+                <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>Platform</span>
+                <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+                  {isNative ? 'Android App (Native)' : isStandalone ? 'Standalone Web App' : 'Web Edition'}
+                </span>
+              </div>
+              <div className="settings-item-row">
                 <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>Engine Status</span>
                 <span style={{ color: 'var(--success)', fontWeight: 600, fontSize: '0.85rem' }}>
                   Online 🟢
@@ -1457,22 +1482,51 @@ export default function App() {
               </div>
             </div>
 
-            {/* Android Mobile App (APK) */}
-            <div className="apk-banner-card">
-              <div className="apk-banner-text">
-                <h3>📱 Android Mobile App</h3>
-                <p>Install SocialDL on your phone for 1-tap saving.</p>
+            {/* Android Mobile App (APK) - Hidden inside native app */}
+            {showApkPrompts ? (
+              <div className="apk-banner-card">
+                <div className="apk-banner-text">
+                  <h3>📱 Android Mobile App</h3>
+                  <p>Install SocialDL on your phone for 1-tap saving.</p>
+                </div>
+                <a
+                  href={APK_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn-apk-install"
+                >
+                  <Download size={14} />
+                  Download APK
+                </a>
               </div>
-              <a
-                href={APK_URL}
-                target="_blank"
-                rel="noreferrer"
-                className="btn-apk-install"
+            ) : isNative ? (
+              <div
+                className="apk-banner-card"
+                style={{
+                  background: 'var(--bg-subtle)',
+                  borderColor: 'var(--border-subtle)',
+                  boxShadow: 'none'
+                }}
               >
-                <Download size={14} />
-                Download APK
-              </a>
-            </div>
+                <div className="apk-banner-text">
+                  <h3 style={{ color: 'var(--text-primary)' }}>📱 Native Android App</h3>
+                  <p>SocialDL Mobile Edition • Version 1.0.0</p>
+                </div>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    color: 'var(--success)',
+                    fontWeight: 700,
+                    fontSize: '0.84rem'
+                  }}
+                >
+                  <CheckCircle2 size={16} />
+                  Installed
+                </div>
+              </div>
+            ) : null}
           </div>
         )}
       </main>

@@ -98,7 +98,7 @@ export default function App() {
   const showApkPrompts = !isNative && !isStandalone && !isIOS
 
   // Over-The-Air (OTA) Update State
-  const CURRENT_APP_VERSION = import.meta.env.VITE_APP_VERSION || '1.0.1'
+  const CURRENT_APP_VERSION = import.meta.env.VITE_APP_VERSION || '1.0.2'
   const [activeVersion, setActiveVersion] = useState(CURRENT_APP_VERSION)
   const [checkingOta, setCheckingOta] = useState(false)
   const [otaStatusMessage, setOtaStatusMessage] = useState(null)
@@ -255,6 +255,25 @@ export default function App() {
     checkHealth()
     const timer = setInterval(checkHealth, 30000)
     return () => clearInterval(timer)
+  }, [])
+
+  // Sync Server Version (Ensures Web Edition always reflects live release version)
+  useEffect(() => {
+    const fetchLatestVersion = async () => {
+      try {
+        const baseUrl = getApiUrl()
+        const res = await fetch(`${baseUrl}/api/app/version`)
+        if (!res.ok) return
+        const raw = await res.text()
+        const data = raw ? JSON.parse(raw) : {}
+        if (data.version && !Capacitor.isNativePlatform()) {
+          setActiveVersion(data.version)
+        }
+      } catch {
+        // keep default
+      }
+    }
+    fetchLatestVersion()
   }, [])
 
   // Over-The-Air (OTA) Updates Lifecycle

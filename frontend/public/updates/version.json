@@ -2,5 +2,5 @@
   "version": "1.0.1",
   "bundle_url": "https://social.nworahebuka.com.ng/updates/dist-v1.0.1.zip",
   "apk_url": "https://social.nworahebuka.com.ng/SocialDL.apk",
-  "changelog": "Switched mobile app endpoint to HTTPS domain"
+  "changelog": "Switched mobile app endpoint to HTTPS domain and activated dynamic OTA engine"
 }

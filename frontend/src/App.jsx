@@ -98,7 +98,8 @@ export default function App() {
   const showApkPrompts = !isNative && !isStandalone && !isIOS
 
   // Over-The-Air (OTA) Update State
-  const CURRENT_APP_VERSION = '1.0.0'
+  const CURRENT_APP_VERSION = import.meta.env.VITE_APP_VERSION || '1.0.1'
+  const [activeVersion, setActiveVersion] = useState(CURRENT_APP_VERSION)
   const [checkingOta, setCheckingOta] = useState(false)
   const [otaStatusMessage, setOtaStatusMessage] = useState(null)
 
@@ -263,6 +264,11 @@ export default function App() {
     // 1. Notify native updater that app rendered successfully (protects against crash rollbacks)
     try {
       CapacitorUpdater.notifyAppReady()
+      CapacitorUpdater.current().then((info) => {
+        if (info?.bundle?.version && info.bundle.version !== 'builtin') {
+          setActiveVersion(info.bundle.version)
+        }
+      }).catch(() => {})
     } catch (err) {
       console.warn('Updater notify notice:', err)
     }
@@ -278,16 +284,18 @@ export default function App() {
 
         if (data.version && data.bundle_url) {
           const current = await CapacitorUpdater.current()
-          const activeVersion = current?.bundle?.version || CURRENT_APP_VERSION
+          const currentVer = (current?.bundle?.version && current.bundle.version !== 'builtin')
+            ? current.bundle.version
+            : activeVersion
 
-          if (data.version !== activeVersion) {
-            console.log(`[OTA] Downloading update v${data.version}...`)
+          if (data.version !== currentVer) {
+            console.log(`[OTA] Silent background downloading v${data.version}...`)
             const downloaded = await CapacitorUpdater.download({
               url: data.bundle_url,
               version: data.version
             })
-            // Stage update to be applied seamlessly on next launch
-            await CapacitorUpdater.set(downloaded)
+            // Stage update for next launch so user is not interrupted while downloading
+            await CapacitorUpdater.next(downloaded)
             console.log(`[OTA] Update v${data.version} downloaded and staged for next launch`)
           }
         }
@@ -314,7 +322,9 @@ export default function App() {
       const data = raw ? JSON.parse(raw) : {}
 
       const current = await CapacitorUpdater.current()
-      const currentVer = current?.bundle?.version || CURRENT_APP_VERSION
+      const currentVer = (current?.bundle?.version && current.bundle.version !== 'builtin')
+        ? current.bundle.version
+        : activeVersion
 
       if (data.version && data.version !== currentVer && data.bundle_url) {
         setOtaStatusMessage(`Downloading v${data.version}...`)
@@ -322,9 +332,10 @@ export default function App() {
           url: data.bundle_url,
           version: data.version
         })
-        await CapacitorUpdater.set(downloaded)
-        setOtaStatusMessage(`v${data.version} ready! Restart to apply.`)
+        setOtaStatusMessage(`Applying v${data.version}...`)
         await triggerHaptic('success')
+        // Immediately reload into new bundle
+        await CapacitorUpdater.set(downloaded)
       } else {
         setOtaStatusMessage('You are on the latest version!')
         await triggerHaptic('success')
@@ -1590,7 +1601,7 @@ export default function App() {
               <div className="settings-item-row">
                 <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>App Version</span>
                 <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-primary)' }}>
-                  v{CURRENT_APP_VERSION}
+                  v{activeVersion}
                 </span>
               </div>
               {isNative && (

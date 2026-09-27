@@ -23,9 +23,11 @@ def main():
 
     print(f"📦 Packaging OTA Update v{version}...")
 
-    # 1. Run frontend build
-    print("🔨 Running 'npm run build'...")
-    build_res = subprocess.run(["npm", "run", "build"], cwd=frontend_dir)
+    # 1. Run frontend build with VITE_APP_VERSION injected
+    print(f"🔨 Running 'npm run build' for v{version}...")
+    env = os.environ.copy()
+    env["VITE_APP_VERSION"] = version
+    build_res = subprocess.run(["npm", "run", "build"], cwd=frontend_dir, env=env)
     if build_res.returncode != 0:
         print("❌ Build failed! Aborting OTA publish.")
         sys.exit(1)

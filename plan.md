@@ -143,11 +143,22 @@
 
 ---
 
-### Phase 11: Verification & Launch Checklist
+### Phase 11: Android APK Build & Micro-Animations (Completed ✅)
+- [x] Configured Android SDK Platform 36 and Build-Tools 35.0.0.
+- [x] Built native Android project using Gradle (`./gradlew assembleDebug`).
+- [x] Generated `SocialDL.apk` (4.36 MB) and committed to repository.
+- [x] Added `SocialDL.apk` to `frontend/public/` for instant live 1-tap download on web deployments.
+- [x] Added interactive micro-animations (pillPop, tabFadeSlide, shimmer progress bar, active icon bounce).
+- [x] Committed to Git (`4f8180a`).
+
+---
+
+### Phase 12: Deployment & Verification Checklist
 - [ ] Vercel web app loads with 0 Mixed Content errors in browser DevTools console.
 - [ ] YouTube, TikTok, and Twitter (X) video links extract and download properly on Vercel.
-- [ ] Capacitor Android APK builds and installs on phone.
+- [x] Capacitor Android APK builds and installs on phone (`SocialDL.apk` created & committed).
 - [ ] Mobile app prompts native download/save dialog when video is ready.
 - [ ] EC2 auto-cleaner continues purging files older than 45 minutes to keep VPS disk space healthy.
+
 
 
